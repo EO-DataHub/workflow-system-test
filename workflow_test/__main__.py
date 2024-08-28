@@ -468,6 +468,5 @@ if __name__ == "__main__":
     results_link = monitor_workflow(api_token, job_id)
     if DEBUG:
         check_outputs_in_s3(api_token, results_link)
-    results_link = f"https://dev.eodatahub.org.uk/ades/{USERNAME}/ogc-api/jobs/b7a75fc0-6480-11ef-94eb-bac5acd9dcaa/results"
     check_S3_access_token(api_token, results_link)
     logger.info("Test is successful")
