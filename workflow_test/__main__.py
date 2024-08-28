@@ -417,7 +417,7 @@ def check_S3_access_token(api_token: str, results_link: str):
         results_link, headers={"Authorization": f"Bearer {api_token}", "accept": "application/json"}
     )
     if collection_response.status_code != 200:
-        logger.error("Failed to get results from %", results_link)
+        logger.error("Failed to get results from %s", results_link)
         try:
             logger.error(collection_response.json())
         except JSONDecodeError:
