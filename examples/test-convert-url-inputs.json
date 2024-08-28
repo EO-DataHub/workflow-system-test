@@ -1,0 +1,7 @@
+{
+    "inputs": {
+        "fn": "resize",
+        "url": "https://raw.githubusercontent.com/EO-DataHub/test-workflow-store/main/EO-Data-Hub-logo_colour_425px.png",
+        "size": "40%"
+    }
+}
