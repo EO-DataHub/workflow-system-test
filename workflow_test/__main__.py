@@ -73,7 +73,7 @@ if GITHUB_REPO:
     g = Github()
 
 
-def get_workflow_id():
+def get_workflow_id() -> str:
     # Code to read workflow_id from CWL
     logger.info("Getting workflow ID")
     if GITHUB_REPO:
@@ -89,7 +89,7 @@ def get_workflow_id():
     return workflow_id
 
 
-def generate_workflow_address():
+def generate_workflow_address() -> str:
     logger.info("Generating workflow address")
     if GITHUB_REPO:
         workflow_address = (
@@ -144,7 +144,6 @@ def get_access_token(refresh_token: str) -> str:
             logger.debug("Access token : %s", response.json()["access_token"])
         return response.json()["access_token"]
     else:
-        print(response.json())
         try:
             error_response = response.json()
         except JSONDecodeError:
@@ -155,9 +154,7 @@ def get_access_token(refresh_token: str) -> str:
 
 def request_api_token():
     logger.info("Requesting API token")
-    print(get_refresh_token)
     refresh_token = get_refresh_token()
-    print(refresh_token)
     api_token = get_access_token(refresh_token)
     logger.info("API token received")
     return api_token
@@ -170,7 +167,6 @@ def check_api_token(api_token: str):
         headers={"Authorization": f"Bearer {api_token}", "accept": "application/json"},
     )
     if response.status_code == 200:
-        print(logger.info)
         logger.info("Refresh token tested successfully")
     else:
         try:
@@ -247,14 +243,14 @@ def check_deployment_status(api_token: str, workflow_id: str):
                     != f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes/{workflow_id}/execution"
                 ):
                     logger.error("Deployment execute link is incorrect")
-                    raise
+                    sys.exit(1)
     elif response.status_code == 404:
         logger.error("Workflow %s not deployed", workflow_id)
     else:
         logger.error("Failed to check deployment status: %s", response.json())
 
 
-def load_inputs():
+def load_inputs() -> dict:
     logger.info("Loading inputs")
     if GITHUB_REPO:
         repo = g.get_repo(GITHUB_REPO)
@@ -270,11 +266,11 @@ def load_inputs():
         logger.error("Failed to decode JSON")
         logger.error("Reponse text is:")
         logger.error(workflow_file)
-        raise
+        sys.exit(1)
     return inputs
 
 
-def execute_workflow(api_token: str, workflow_id: str):
+def execute_workflow(api_token: str, workflow_id: str) -> str:
     logger.info("Preparing to execute workflow")
     inputs = load_inputs()
     inputs["inputs"].update({"workspace": USERNAME})
@@ -294,11 +290,11 @@ def execute_workflow(api_token: str, workflow_id: str):
         logger.info("Workflow: %s executed under job: %s", workflow_id, job_id)
     else:
         logger.error("Failed to execute workflow: %s", response.json())
-        raise
+        sys.exit(1)
     return job_id
 
 
-def monitor_workflow(api_token: str, job_id: str):
+def monitor_workflow(api_token: str, job_id: str) -> str:
     logger.info("Monitoring workflow")
     response = requests.get(
         f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/jobs/{job_id}",
@@ -367,7 +363,7 @@ def check_outputs_in_s3(api_token: str, results_link: str):
                     logger.info("S3 key found: %s", key)
                 except client.exceptions.NoSuchKey:
                     logger.error("S3 key not found: %s", key)
-                    raise
+                    sys.exit(1)
     logger.info("Outputs checked")
 
 
@@ -389,7 +385,7 @@ def get_asset_from_s3(collection: dict) -> dict:
                     return item_body
                 except client.exceptions.NoSuchKey:
                     logger.error("S3 key not found: %s", key)
-                    raise
+                    sys.exit(1)
 
 
 def get_asset_from_rc(api_token: str, collection: dict) -> dict:
@@ -408,7 +404,7 @@ def get_asset_from_rc(api_token: str, collection: dict) -> dict:
             logger.error(items_response.json())
         except JSONDecodeError:
             logger.error(items_response.text)
-            raise
+            sys.exit(1)
     items = items_response.json().get("features")
     # Return first item
     return items[0]
@@ -426,14 +422,14 @@ def check_S3_access_token(api_token: str, results_link: str):
             logger.error(collection_response.json())
         except JSONDecodeError:
             logger.error(collection_response.text)
-        raise
+        sys.exit(1)
     try:
         collection = collection_response.json()
     except JSONDecodeError:
         logger.error("Failed to decode JSON")
         logger.error("Reponse text is:")
         logger.error(collection_response.text)
-        raise
+        sys.exit(1)
     # Identify item
     item_body = get_asset_from_rc(api_token, collection)
     # Identify asset href
@@ -450,7 +446,7 @@ def check_S3_access_token(api_token: str, results_link: str):
                 else:
                     logger.error("Failed to download asset: %s from %s", key, asset_href)
                     logger.error(response.json())
-                    raise
+                    sys.exit(1)
 
     logger.info("S3 access token checked")
 
