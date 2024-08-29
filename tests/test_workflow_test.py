@@ -1,4 +1,5 @@
 import importlib
+import json
 import os
 import unittest
 from unittest.mock import Mock, patch
@@ -60,7 +61,7 @@ class TestWorkflowRemote(unittest.TestCase):
         importlib.reload(__main__)
         from workflow_test.__main__ import get_workflow_id
 
-        # configure mocks
+        # Configure mocks
         mock_github_instance = mockGithub.return_value
         mock_repo = Mock()
         mock_contents = Mock()
@@ -109,7 +110,7 @@ class TestRefreshToken(unittest.TestCase):
         importlib.reload(__main__)
         from workflow_test.__main__ import get_refresh_token
 
-        # configure mocks
+        # Configure mocks
         mock.post(
             "https://oauth2-token-url.com",
             status_code=200,
@@ -141,7 +142,7 @@ class TestAccessToken(unittest.TestCase):
         importlib.reload(__main__)
         from workflow_test.__main__ import get_access_token
 
-        # configure mocks
+        # Configure mocks
         mock_refresh_token = "valid-refresh-token"
         mock.post(
             "https://oauth2-token-url.com",
@@ -185,11 +186,12 @@ class TestCheckApiToken(unittest.TestCase):
         importlib.reload(__main__)
         from workflow_test.__main__ import check_api_token
 
-        # configure mocks
+        # Configure mocks
         mock_logger_instance = mock_logger.return_value
 
         mock_logger_instance.info.return_value = None
         mock.get("https://workflow-api-url.com/username/ogc-api/processes", status_code=200)
+
         # Check execution
         check_api_token("test-access-token")
         calls = mock_logger_instance.info.call_args_list
@@ -213,74 +215,139 @@ class TestWorkflowProcessing(unittest.TestCase):
         os.environ.update(self.original_environ)
 
     @requests_mock.Mocker()
-    def test_undeploy_workflow(self, mock):
-        pass
+    @patch("logging.getLogger")
+    def test_undeploy_workflow(self, mock, mock_logger):
         # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
+        from workflow_test import __main__
 
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import undeploy_workflow
+        importlib.reload(__main__)
+        from workflow_test.__main__ import undeploy_workflow
 
-        # undeploy_workflow("valid-api-token", "workflow_id")
+        # Configure mocks
+        mock.delete(
+            "https://workflow-api-url.com/username/ogc-api/processes/test-convert-url",
+            status_code=204,
+        )
+        mock_logger_instance = mock_logger.return_value
+        mock_logger_instance.info.return_value = None
+
+        # Check execution
+        undeploy_workflow("valid-api-token", "test-convert-url")
+        calls = mock_logger_instance.info.call_args_list
+        assert calls[1][0][0] == "Workflow %s undeployed successfully"
+        assert calls[1][0][1] == "test-convert-url"
 
     @requests_mock.Mocker()
-    def test_deploy_workflow_url(self, mock):
-        pass
+    @patch("logging.getLogger")
+    def test_deploy_workflow_url(self, mock, mock_logger):
         # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
+        from workflow_test import __main__
 
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import deploy_workflow
+        importlib.reload(__main__)
+        from workflow_test.__main__ import deploy_workflow
 
-        # deploy_workflow("valid-api-token", "workflow_location")
+        # Configure mocks
+        mock.post("https://workflow-api-url.com/username/ogc-api/processes", status_code=201)
+        mock_logger_instance = mock_logger.return_value
+        mock_logger_instance.info.return_value = None
+
+        # Check execution
+        deploy_workflow(
+            "valid-api-token",
+            "test-convert-url",
+            "https://raw.githubusercontent.com/test-repo/main/examples/convert-url-app.cwl",
+        )
+        calls = mock_logger_instance.info.call_args_list
+        assert calls[1][0][0] == "Workflow %s deployed successfully"
+        assert calls[1][0][1] == "test-convert-url"
 
     @requests_mock.Mocker()
-    def test_deploy_workflow_file(self, mock):
-        pass
+    @patch("logging.getLogger")
+    def test_deploy_workflow_file(self, mock, mock_logger):
         # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
+        from workflow_test import __main__
 
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import deploy_workflow
+        importlib.reload(__main__)
+        from workflow_test.__main__ import deploy_workflow
 
-        # deploy_workflow("valid-api-token", "workflow_location")
+        # Configure mocks
+        mock.post("https://workflow-api-url.com/username/ogc-api/processes", status_code=201)
+        mock_logger_instance = mock_logger.return_value
+        mock_logger_instance.info.return_value = None
+
+        # Check execution
+        deploy_workflow("valid-api-token", "test-convert-url", "examples/convert-url-app.cwl")
+        calls = mock_logger_instance.info.call_args_list
+        assert calls[1][0][0] == "Workflow %s deployed successfully"
+        assert calls[1][0][1] == "test-convert-url"
 
     @requests_mock.Mocker()
-    def test_check_deployment_status(self, mock):
-        pass
+    @patch("logging.getLogger")
+    def test_check_deployment_status(self, mock, mock_logger):
         # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
+        from workflow_test import __main__
 
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import check_deployment_status
+        importlib.reload(__main__)
+        from workflow_test.__main__ import check_deployment_status
 
-        # check_deployment_status("valid-api-token", "workflow_id")
+        # Configure mocks
+        test_url = "https://workflow-api-url.com/username/ogc-api/processes/test-convert-url"
+        mock.get(
+            test_url,
+            status_code=200,
+            json=lambda request, context: {
+                "links": [{"title": "Execute End Point", "href": f"{test_url}/execution"}]
+            },
+        )
+        mock_logger_instance = mock_logger.return_value
+        mock_logger_instance.info.return_value = None
+
+        # Check execution
+        check_deployment_status("valid-api-token", "test-convert-url")
+        calls = mock_logger_instance.info.call_args_list
+        assert calls[1][0][0] == "Workflow %s is available"
+        assert calls[1][0][1] == "test-convert-url"
 
     @requests_mock.Mocker()
-    def test_execute_workflow(self, mock):
-        pass
+    @patch("workflow_test.__main__.load_inputs", return_value={"inputs": {"input": "test"}})
+    def test_execute_workflow(self, mock, mock_load_inputs):
         # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
 
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import execute_workflow
+        from workflow_test.__main__ import execute_workflow
 
-        # job_id = execute_workflow("valid-api-token", "workflow_id")
+        # Configure mocks
+        test_url = (
+            "https://workflow-api-url.com/username/ogc-api/processes/test-convert-url/execution"
+        )
+        mock.post(test_url, status_code=201, json=lambda request, context: {"jobID": "test_job_id"})
 
-        # assert job_id
+        # Check execution
+        job_id = execute_workflow("valid-api-token", "test-convert-url")
+        assert job_id == "test_job_id"
 
     @requests_mock.Mocker()
     def test_monitor_workflow(self, mock):
         pass
         # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
+        from workflow_test import __main__
 
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import monitor_workflow
+        importlib.reload(__main__)
+        from workflow_test.__main__ import monitor_workflow
 
-        # results_link = monitor_workflow("valid-api-token", "job_id")
+        # Configure mocks
+        test_url = "https://workflow-api-url.com/username/ogc-api/jobs/test_job_id"
+        mock.get(
+            test_url,
+            status_code=200,
+            json=lambda request, context: {
+                "status": "successful",
+                "links": [{"title": "Result location", "href": "results_link"}],
+            },
+        )
 
-        # assert results_link
+        results_link = monitor_workflow("valid-api-token", "test_job_id")
+
+        assert results_link == "results_link"
 
 
 class TestWorkflowInputsLocal(unittest.TestCase):
@@ -288,25 +355,27 @@ class TestWorkflowInputsLocal(unittest.TestCase):
         # Set environment variables
         self.original_environ = os.environ.copy()
         os.environ.clear()
-        os.environ["INPUTS_FILE"] = "examples/convert-url-inputs.json"
+        os.environ["INPUTS_FILE"] = "examples/convert-url-app-inputs.json"
 
     def tearDown(self):
         # Unset environment variables
         os.environ.clear()
         os.environ.update(self.original_environ)
 
-    @requests_mock.Mocker()
-    def test_load_inputs(self, mock):
+    def test_load_inputs(self):
         pass
         # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
+        from workflow_test import __main__
 
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import load_inputs
+        importlib.reload(__main__)
+        from workflow_test.__main__ import load_inputs
 
-        # inputs = load_inputs()
+        inputs = load_inputs()
 
-        # assert inputs
+        with open("examples/convert-url-app-inputs.json", "r") as workflow_file:
+            workflow_file = workflow_file.read()
+
+        assert inputs == json.loads(workflow_file)
 
 
 class TestWorkflowInputsRemote(unittest.TestCase):
@@ -316,7 +385,47 @@ class TestWorkflowInputsRemote(unittest.TestCase):
         os.environ.clear()
         os.environ["GITHUB_REPO"] = "test-repo"
         os.environ["GITHUB_BRANCH"] = "main"
-        os.environ["INPUTS_FILE"] = "examples/convert-url-inputs.json"
+        os.environ["INPUTS_FILE"] = "examples/convert-url-app-inputs.json"
+
+    def tearDown(self):
+        # Unset environment variables
+        os.environ.clear()
+        os.environ.update(self.original_environ)
+
+    @patch("github.Github")
+    def test_load_inputs(self, mockGithub):
+        pass
+        # Reload the module to ensure it reads the new environment variables
+        from workflow_test import __main__
+
+        importlib.reload(__main__)
+        from workflow_test.__main__ import load_inputs
+
+        # Configure mocks
+        mock_github_instance = mockGithub.return_value
+        mock_repo = Mock()
+        mock_contents = Mock()
+        # To mock Github access we just load local file instead
+        with open("examples/convert-url-app-inputs.json", "r") as f:
+            mock_contents.decoded_content = f.read()
+            mock_repo.get_contents.return_value = mock_contents
+        mock_github_instance.get_repo.return_value = mock_repo
+
+        inputs = load_inputs()
+
+        with open("examples/convert-url-app-inputs.json", "r") as workflow_file:
+            workflow_file = workflow_file.read()
+
+        assert inputs == json.loads(workflow_file)
+
+
+class TestWorkflowOutputs(unittest.TestCase):
+    def setUp(self):
+        # Set environment variables
+        self.original_environ = os.environ.copy()
+        os.environ.clear()
+        os.environ["USERNAME"] = "username"
+        os.environ["RESOURCE_CATALOGUE_API_URL"] = "https://resource-catalogue-api.com/rc"
 
     def tearDown(self):
         # Unset environment variables
@@ -324,33 +433,27 @@ class TestWorkflowInputsRemote(unittest.TestCase):
         os.environ.update(self.original_environ)
 
     @requests_mock.Mocker()
-    def test_load_inputs(self, mock):
+    @patch("workflow_test.__main__.client", return_value=None)
+    def test_check_outputs_s3(self, mock, mock_boto3_client):
+        # Only used for debug, not unit tested
         pass
-        # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
-
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import load_inputs
-
-        # inputs = load_inputs()
-
-        # assert inputs
-
-
-class TestWorkflowOutputs(unittest.TestCase):
-    @requests_mock.Mocker()
-    def test_check_outputs_s3(self, mock):
-        pass
-        # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
-
-        # importlib.reload(__main__)
+        # Import the module to ensure it reads the new environment variables
         # from workflow_test.__main__ import check_outputs_in_s3
 
-        # check_outputs_in_s3("valid-api-token", "results_link")
+        # # Configure mocks
+        # test_url = "https://workflow-api-url.com/username/ogc-api/jobs/test_job_id/results"
+        # mock.get(test_url, status_code=200, json=lambda request, context: {"links":
+        # [{"rel": "root", "href": "s3://bucket/root_link"},
+        #  {"rel": "self", "href": "s3://bucket/self_link"},
+        #  {"rel": "item", "href": "s3://bucket/item_link"},]})
+        # mock_s3_client = mock_boto3_client.return_value
+        # #mock_s3_client.get_object.return_value = None
+
+        # check_outputs_in_s3("valid-api-token", "https://workflow-api-url.com/username/ogc-api/jobs/test_job_id/results")
 
     @requests_mock.Mocker()
     def test_get_asset_s3(self, mock):
+        # Only used for debug, not unit tested
         pass
         # Reload the module to ensure it reads the new environment variables
         # from workflow_test import __main__
@@ -364,22 +467,51 @@ class TestWorkflowOutputs(unittest.TestCase):
 
     @requests_mock.Mocker()
     def test_get_asset_rc(self, mock):
-        pass
         # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
+        from workflow_test import __main__
 
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import get_asset_from_rc
+        importlib.reload(__main__)
+        from workflow_test.__main__ import get_asset_from_rc
 
-        # get_asset_from_rc("valid-api-token", {"id": "collection_id"})
+        # Configure mocks
+        test_url = "https://resource-catalogue-api.com/rc/catalogs/user-datasets/username/processing-results/cat_1234567/collections/col_1234567/items"
+        mock.get(
+            test_url,
+            status_code=200,
+            json=lambda request, context: {
+                "features": [
+                    {"id": "1xxxx", "title": "test_item_1"},
+                    {"id": "2xxx", "title": "test_item_2"},
+                    {"id": "3ccc", "title": "test_item_3"},
+                ]
+            },
+        )
+
+        item = get_asset_from_rc("valid-api-token", {"id": "1234567"})
+
+        assert item == {"id": "1xxxx", "title": "test_item_1"}
 
     @requests_mock.Mocker()
-    def test_check_s3_access_token(self, mock):
-        pass
-        # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
+    @patch("workflow_test.__main__.logger")
+    @patch(
+        "workflow_test.__main__.get_asset_from_rc",
+        return_value={"id": "1xxxx", "title": "test_item_1"},
+    )
+    def test_check_s3_access_token(self, mock, mock_get_asset_from_rc, mock_logger):
+        # Import the module to ensure it reads the new environment variables
+        from workflow_test.__main__ import check_s3_access_token
 
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import check_s3_access_token
+        # Configure mocks
+        test_url = "https://workflow-api-url.com/username/ogc-api/jobs/test_job_id/results"
+        mock.get(test_url, status_code=200, json=lambda request, context: {"id": "1234567"})
+        mock_logger.info.return_value = "testing"
 
-        # check_s3_access_token("valid-api-token", "results_link")
+        check_s3_access_token(
+            "valid-api-token",
+            "https://workflow-api-url.com/username/ogc-api/jobs/test_job_id/results",
+        )
+
+        mock_get_asset_from_rc.assert_called_once_with("valid-api-token", {"id": "1234567"})
+
+        calls = mock_logger.info.call_args_list
+        assert calls[1][0][0] == "S3 access token checked successfully"
