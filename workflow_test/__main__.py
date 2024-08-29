@@ -40,7 +40,7 @@ USERNAME = os.getenv("USERNAME", None)
 PASSWORD = os.getenv("PASSWORD", None)
 
 # API details
-OAUTH2_TOKEN_API_URL = os.getenv("OAUTH2_TOKEN_API_URL", None)
+AUTH_TOKEN_API_URL = os.getenv("AUTH_TOKEN_API_URL", None)
 WORKFLOW_API_URL = os.getenv("WORKFLOW_API_URL", None)
 RESOURCE_CATALOGUE_API_URL = os.getenv("RESOURCE_CATALOGUE_API_URL", None)
 
@@ -103,7 +103,7 @@ def generate_workflow_address() -> str:
 
 def get_refresh_token() -> str:
     response = requests.post(
-        OAUTH2_TOKEN_API_URL,
+        AUTH_TOKEN_API_URL,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data={
             "client_id": CLIENT_ID,
@@ -129,7 +129,7 @@ def get_refresh_token() -> str:
 
 def get_access_token(refresh_token: str) -> str:
     response = requests.post(
-        OAUTH2_TOKEN_API_URL,
+        AUTH_TOKEN_API_URL,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data={
             "client_id": CLIENT_ID,

@@ -89,7 +89,7 @@ class TestRefreshToken(unittest.TestCase):
         # Set environment variables
         self.original_environ = os.environ.copy()
         os.environ.clear()
-        os.environ["OAUTH2_TOKEN_API_URL"] = "https://oauth2-token-url.com"
+        os.environ["AUTH_TOKEN_API_URL"] = "https://oauth2-token-url.com"
         os.environ["CLIENT_ID"] = "client_id"
         os.environ["CLIENT_SECRET"] = "client_secret"
         os.environ["USERNAME"] = "username"
@@ -123,7 +123,7 @@ class TestAccessToken(unittest.TestCase):
         # Set environment variables
         self.original_environ = os.environ.copy()
         os.environ.clear()
-        os.environ["OAUTH2_TOKEN_API_URL"] = "https://oauth2-token-url.com"
+        os.environ["AUTH_TOKEN_API_URL"] = "https://oauth2-token-url.com"
         os.environ["CLIENT_ID"] = "client_id"
         os.environ["CLIENT_SECRET"] = "client_secret"
         os.environ["DEBUG"] = "false"
