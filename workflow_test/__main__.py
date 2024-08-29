@@ -48,7 +48,6 @@ RESOURCE_CATALOGUE_API_URL = os.getenv("RESOURCE_CATALOGUE_API_URL", None)
 CLIENT_ID = os.getenv("CLIENT_ID", None)
 CLIENT_SECRET = os.getenv("CLIENT_SECRET", None)
 
-
 # Workflow location details
 GITHUB_REPO = os.getenv("GITHUB_REPO", None)
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", None)
@@ -56,7 +55,7 @@ WORKFLOW_FILE = os.getenv("WORKFLOW_FILE", None)
 INPUTS_FILE = os.getenv("INPUTS_FILE", None)
 
 # Set results timeout
-TIMEOUT = os.getenv("TIMEOUT", 300)
+TIMEOUT = os.getenv("TIMEOUT", 270)  # Under 5 minutes as token timesout after 5 minutes
 
 # Set S3 client
 if DEBUG and os.getenv("AWS_ACCESS_KEY_ID", None) and os.getenv("AWS_SECRET_ACCESS_KEY", None):
@@ -164,7 +163,7 @@ def check_api_token(api_token: str):
     logger.info("Testing refresh token")
     response = requests.get(
         f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes",
-        headers={"Authorization": f"Bearer {api_token}", "accept": "application/json"},
+        headers={"Authorization": f"Bearer {api_token}", "Accept": "application/json"},
     )
     if response.status_code == 200:
         logger.info("Refresh token tested successfully")
@@ -177,11 +176,31 @@ def check_api_token(api_token: str):
         sys.exit(1)
 
 
+def check_ades_status():
+    logger.info("Checking ADES status")
+    response = requests.get(WORKFLOW_API_URL)
+    if response.status_code == 200:
+        logger.info("ADES is running")
+        return
+    logger.info("Waiting for ADES to start up")
+    start_time = time.time()
+    final_timeout = start_time + TIMEOUT
+    while time.time() < final_timeout:
+        logger.info("Waiting for ADES to start")
+        time.sleep(5)
+        response = requests.get(WORKFLOW_API_URL)
+        if response.status_code == 200:
+            logger.info("ADES is running")
+            break
+    logger.error("ADES start up reached timeout, ending test")
+    sys.exit(1)
+
+
 def undeploy_workflow(api_token: str, workflow_id: str):
     logger.info("Undeploying workflow")
     response = requests.delete(
         f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes/{workflow_id}",
-        headers={"Authorization": f"Bearer {api_token}", "accept": "application/json"},
+        headers={"Authorization": f"Bearer {api_token}", "Accept": "application/json"},
     )
     if response.status_code == 204:
         logger.info("Workflow %s undeployed", workflow_id)
@@ -191,15 +210,16 @@ def undeploy_workflow(api_token: str, workflow_id: str):
         logger.error("Failed to undeploy workflow %s: %s", workflow_id, response.json())
 
 
-def deploy_workflow(api_token: str, workflow_location: str):
-    logger.info("Deploying workflow")
+def deploy_workflow(api_token: str, workflow_id: str, workflow_location: str):
     if workflow_location.startswith("https://"):
         logger.info("Deploying workflow from URL")
+        logger.info(f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes")
+        logger.info(workflow_location)
         response = requests.post(
             f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes",
             headers={
                 "Authorization": f"Bearer {api_token}",
-                "accept": "application/json",
+                "Accept": "application/json",
                 "Content-Type": "application/json",
             },
             json={
@@ -214,27 +234,29 @@ def deploy_workflow(api_token: str, workflow_location: str):
             f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes",
             headers={
                 "Authorization": f"Bearer {api_token}",
-                "accept": "application/json",
+                "Accept": "application/json",
                 "Content-Type": "application/cwl+yaml",
             },
             data=workflow_file,
         )
     if response.status_code == 201:
-        logger.info("Workflow deployed")
+        logger.info("Workflow %s deployed", workflow_id)
     elif response.status_code == 409:
-        logger.warning("Workflow already deployed, it should have been deleted")
+        logger.warning("Workflow %s already deployed, it should have been deleted", workflow_id)
     else:
-        logger.error("Failed to deploy workflow: %s", response.text)
+        logger.error("Failed to deploy workflow %s : %s", workflow_id, response.text)
+        sys.exit(1)
 
 
 def check_deployment_status(api_token: str, workflow_id: str):
     logger.info("Checking deployment status")
+    logger.info(f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes/{workflow_id}")
     response = requests.get(
         f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes/{workflow_id}",
-        headers={"Authorization": f"Bearer {api_token}", "accept": "application/json"},
+        headers={"Authorization": f"Bearer {api_token}", "Accept": "application/json"},
     )
     if response.status_code == 200:
-        logger.info("Workflow %s deployed", workflow_id)
+        logger.info("Workflow %s is available", workflow_id)
         # Check deployment execute link is correct
         for link in response.json().get("links"):
             if link["title"] == "Execute End Point":
@@ -246,8 +268,11 @@ def check_deployment_status(api_token: str, workflow_id: str):
                     sys.exit(1)
     elif response.status_code == 404:
         logger.error("Workflow %s not deployed", workflow_id)
+        sys.exit(1)
     else:
-        logger.error("Failed to check deployment status: %s", response.json())
+        logger.error(
+            "Failed to check deployment status for workflow %s : %s", workflow_id, response.json()
+        )
 
 
 def load_inputs() -> dict:
@@ -279,7 +304,7 @@ def execute_workflow(api_token: str, workflow_id: str) -> str:
         f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes/{workflow_id}/execution",
         headers={
             "Authorization": f"Bearer {api_token}",
-            "accept": "application/json",
+            "Accept": "application/json",
             "Content-Type": "application/json",
             "prefer": "respond-async",
         },
@@ -298,7 +323,7 @@ def monitor_workflow(api_token: str, job_id: str) -> str:
     logger.info("Monitoring workflow")
     response = requests.get(
         f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {api_token}", "accept": "application/json"},
+        headers={"Authorization": f"Bearer {api_token}", "Accept": "application/json"},
     )
     start_time = time.time()
     final_timeout = start_time + TIMEOUT
@@ -322,7 +347,7 @@ def monitor_workflow(api_token: str, job_id: str) -> str:
                 time.sleep(5)
                 response = requests.get(
                     f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/jobs/{job_id}",
-                    headers={"Authorization": f"Bearer {api_token}", "accept": "application/json"},
+                    headers={"Authorization": f"Bearer {api_token}", "Accept": "application/json"},
                 )
         else:
             try:
@@ -339,7 +364,7 @@ def check_outputs_in_s3(api_token: str, results_link: str):
     logger.info("Checking outputs found at %s", results_link)
     # Get resulting collection
     collection_response = requests.get(
-        results_link, headers={"Authorization": f"Bearer {api_token}", "accept": "application/json"}
+        results_link, headers={"Authorization": f"Bearer {api_token}", "Accept": "application/json"}
     )
     if collection_response.status_code != 200:
         logger.error("Failed to get results from %", results_link)
@@ -389,6 +414,7 @@ def get_asset_from_s3(collection: dict) -> dict:
 
 
 def get_asset_from_rc(api_token: str, collection: dict) -> dict:
+    logger.info("Identifying asset from Resource Catalogue")
     id = collection.get("id")
     catalog_id = f"cat_{id}"
     collection_id = f"col_{id}"
@@ -397,6 +423,7 @@ def get_asset_from_rc(api_token: str, collection: dict) -> dict:
         f"{RESOURCE_CATALOGUE_API_URL}/catalogs/user-datasets/{USERNAME}/processing-results/"
         f"{catalog_id}/collections/{collection_id}/items"
     )
+    logger.info(f"Searching for assets in {items_url}")
     items_response = requests.get(items_url, headers={"Authorization": f"Bearer {api_token}"})
     if items_response.status_code != 200:
         logger.error("Failed to get results from %s", items_url)
@@ -414,7 +441,7 @@ def check_S3_access_token(api_token: str, results_link: str):
     logger.info("Checking S3 access token")
     # Using results links, identify an asset href
     collection_response = requests.get(
-        results_link, headers={"Authorization": f"Bearer {api_token}", "accept": "application/json"}
+        results_link, headers={"Authorization": f"Bearer {api_token}", "Accept": "application/json"}
     )
     if collection_response.status_code != 200:
         logger.error("Failed to get results from %s", results_link)
@@ -456,10 +483,12 @@ if __name__ == "__main__":
     check_api_token(api_token)
     workflow_location = generate_workflow_address()
     workflow_id = get_workflow_id()
+    # Check ades is running
+    check_ades_status()
     undeploy_workflow(api_token, workflow_id)
     logger.info("Temporary halt")
     time.sleep(5)
-    deploy_workflow(api_token, workflow_location)
+    deploy_workflow(api_token, workflow_id, workflow_location)
     check_deployment_status(api_token, workflow_id)
     # Need to wait after deployment for a few seconds before workflow is available for execution
     logger.info("Temporary halt")
