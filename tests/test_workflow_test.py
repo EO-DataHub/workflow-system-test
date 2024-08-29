@@ -11,7 +11,7 @@ class TestWorkflowLocal(unittest.TestCase):
         # Set environment variables
         self.original_environ = os.environ.copy()
         os.environ.clear()
-        os.environ["WORKFLOW_FILE"] = "examples/test-convert-url.cwl"
+        os.environ["WORKFLOW_FILE"] = "examples/convert-url-app.cwl"
 
     def tearDown(self):
         # Unset environment variables
@@ -28,14 +28,14 @@ class TestWorkflowLocal(unittest.TestCase):
         assert get_workflow_id() == "test-convert-url"
 
     def test_generate_workflow_address_local(self):
-        os.environ["WORKFLOW_FILE"] = "examples/test-convert-url.cwl"
+        os.environ["WORKFLOW_FILE"] = "examples/convert-url-app.cwl"
         # Reload the module to ensure it reads the new environment variables
         from workflow_test import __main__
 
         importlib.reload(__main__)
         from workflow_test.__main__ import generate_workflow_address
 
-        assert generate_workflow_address() == "examples/test-convert-url.cwl"
+        assert generate_workflow_address() == "examples/convert-url-app.cwl"
 
 
 class TestWorkflowRemote(unittest.TestCase):
@@ -45,7 +45,7 @@ class TestWorkflowRemote(unittest.TestCase):
         os.environ.clear()
         os.environ["GITHUB_REPO"] = "test-repo"
         os.environ["GITHUB_BRANCH"] = "main"
-        os.environ["WORKFLOW_FILE"] = "examples/test-convert-url.cwl"
+        os.environ["WORKFLOW_FILE"] = "examples/convert-url-app.cwl"
 
     def tearDown(self):
         # Unset environment variables
@@ -65,7 +65,7 @@ class TestWorkflowRemote(unittest.TestCase):
         mock_repo = Mock()
         mock_contents = Mock()
         # To mock Github access we just load local file instead
-        with open("examples/test-convert-url.cwl", "r") as f:
+        with open("examples/convert-url-app.cwl", "r") as f:
             mock_contents.decoded_content = f.read()
             mock_repo.get_contents.return_value = mock_contents
         mock_github_instance.get_repo.return_value = mock_repo
@@ -80,7 +80,7 @@ class TestWorkflowRemote(unittest.TestCase):
 
         assert (
             generate_workflow_address()
-            == "https://raw.githubusercontent.com/test-repo/main/examples/test-convert-url.cwl"
+            == "https://raw.githubusercontent.com/test-repo/main/examples/convert-url-app.cwl"
         )
 
 
@@ -203,7 +203,7 @@ class TestWorkflowProcessing(unittest.TestCase):
         os.environ.clear()
         os.environ["GITHUB_REPO"] = "test-repo"
         os.environ["GITHUB_BRANCH"] = "main"
-        os.environ["INPUTS_FILE"] = "examples/test-convert-url-inputs.json"
+        os.environ["INPUTS_FILE"] = "examples/convert-url-inputs.json"
         os.environ["WORKFLOW_API_URL"] = "https://workflow-api-url.com"
         os.environ["USERNAME"] = "username"
 
@@ -288,7 +288,7 @@ class TestWorkflowInputsLocal(unittest.TestCase):
         # Set environment variables
         self.original_environ = os.environ.copy()
         os.environ.clear()
-        os.environ["INPUTS_FILE"] = "examples/test-convert-url-inputs.json"
+        os.environ["INPUTS_FILE"] = "examples/convert-url-inputs.json"
 
     def tearDown(self):
         # Unset environment variables
@@ -316,7 +316,7 @@ class TestWorkflowInputsRemote(unittest.TestCase):
         os.environ.clear()
         os.environ["GITHUB_REPO"] = "test-repo"
         os.environ["GITHUB_BRANCH"] = "main"
-        os.environ["INPUTS_FILE"] = "examples/test-convert-url-inputs.json"
+        os.environ["INPUTS_FILE"] = "examples/convert-url-inputs.json"
 
     def tearDown(self):
         # Unset environment variables
