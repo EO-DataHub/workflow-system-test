@@ -188,6 +188,7 @@ def check_ades_status():
     logger.info("Waiting for ADES to start up")
     start_time = time.time()
     final_timeout = start_time + BOOT_TIMEOUT
+    logger.info(f"Waiting {BOOT_TIMEOUT} seconds for ADES to start")
     while time.time() < final_timeout:
         logger.info("Waiting for ADES to start")
         time.sleep(5)
