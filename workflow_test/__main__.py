@@ -417,11 +417,11 @@ def check_outputs_in_s3(api_token: str, results_link: str):
                     else:
                         logger.error("Failed to find key %s in bucket", key)
                         logger.error(err)
-    logger.info("Outputs checked")
+    logger.info("Outputs checked successfully")
 
 
 def get_asset_from_s3(collection: dict) -> dict:
-    """Get the asset from S3 (DEBUG ONLY)"""
+    """Get the first asset from S3 (DEBUG ONLY)"""
     # Identify item
     links = collection.get("links")
     for link in links:
@@ -449,7 +449,7 @@ def get_asset_from_s3(collection: dict) -> dict:
 
 
 def get_asset_from_rc(api_token: str, collection: dict) -> dict:
-    """Get the asset from the Resource Catalogue"""
+    """Get the first asset from the Resource Catalogue"""
     logger.info("Identifying asset from Resource Catalogue")
     id = collection.get("id")
     catalog_id = f"cat_{id}"
@@ -495,7 +495,10 @@ def check_s3_access_token(api_token: str, results_link: str):
         logger.error(collection_response.text)
         sys.exit(1)
     # Identify item
-    item_body = get_asset_from_rc(api_token, collection)
+    if DEBUG:
+        item_body = get_asset_from_s3(collection)
+    else:
+        item_body = get_asset_from_rc(api_token, collection)
     # Identify asset href
     if "assets" in item_body:
         # Check all assets are available for download
