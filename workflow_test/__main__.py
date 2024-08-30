@@ -7,6 +7,7 @@ from distutils.util import strtobool
 from json import JSONDecodeError
 
 import boto3
+import botocore
 import requests
 import yaml
 from github import Github
@@ -76,7 +77,7 @@ if GITHUB_REPO:
 
 
 def get_workflow_id() -> str:
-    # Code to read workflow_id from CWL
+    """Get the workflow ID from the workflow file"""
     logger.info("Getting workflow ID")
     if GITHUB_REPO:
         repo = g.get_repo(GITHUB_REPO)
@@ -92,6 +93,7 @@ def get_workflow_id() -> str:
 
 
 def generate_workflow_address() -> str:
+    """Generate the workflow address"""
     logger.info("Generating workflow address")
     if GITHUB_REPO:
         workflow_address = (
@@ -104,6 +106,7 @@ def generate_workflow_address() -> str:
 
 
 def get_refresh_token() -> str:
+    """Get the refresh token"""
     response = requests.post(
         AUTH_TOKEN_API_URL,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -130,6 +133,7 @@ def get_refresh_token() -> str:
 
 
 def get_access_token(refresh_token: str) -> str:
+    """Get the access token from the refresh token"""
     response = requests.post(
         AUTH_TOKEN_API_URL,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -155,6 +159,7 @@ def get_access_token(refresh_token: str) -> str:
 
 
 def request_api_token():
+    """Request the API token"""
     logger.info("Requesting API token")
     refresh_token = get_refresh_token()
     api_token = get_access_token(refresh_token)
@@ -163,6 +168,7 @@ def request_api_token():
 
 
 def check_api_token(api_token: str):
+    """Check the API token is valid"""
     logger.info("Testing refresh token")
     response = requests.get(
         f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes",
@@ -180,6 +186,7 @@ def check_api_token(api_token: str):
 
 
 def check_ades_status():
+    """Check the ADES is running and available"""
     logger.info("Checking ADES status")
     response = requests.get(WORKFLOW_API_URL)
     if response.status_code == 200:
@@ -201,6 +208,7 @@ def check_ades_status():
 
 
 def undeploy_workflow(api_token: str, workflow_id: str):
+    """Undeploy the workflow if it is already deployed"""
     logger.info("Undeploying workflow")
     response = requests.delete(
         f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes/{workflow_id}",
@@ -215,6 +223,7 @@ def undeploy_workflow(api_token: str, workflow_id: str):
 
 
 def deploy_workflow(api_token: str, workflow_id: str, workflow_location: str):
+    """Deploy the workflow to the ADES"""
     if workflow_location.startswith("https://"):
         logger.info("Deploying workflow from URL")
         response = requests.post(
@@ -243,6 +252,15 @@ def deploy_workflow(api_token: str, workflow_id: str, workflow_location: str):
         )
     if response.status_code == 201:
         logger.info("Workflow %s deployed successfully", workflow_id)
+        # Check deployment status link is correct
+        for header in response.headers:
+            if header == "Location":
+                if (
+                    response.headers[header]
+                    != f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes/{workflow_id}"
+                ):
+                    logger.error("Deployment status link is incorrect")
+                    sys.exit(1)
     elif response.status_code == 409:
         logger.warning("Workflow %s already deployed, it should have been deleted", workflow_id)
     else:
@@ -251,6 +269,7 @@ def deploy_workflow(api_token: str, workflow_id: str, workflow_location: str):
 
 
 def check_deployment_status(api_token: str, workflow_id: str):
+    """Check the deployment status of the workflow"""
     logger.info("Checking deployment status")
     response = requests.get(
         f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/processes/{workflow_id}",
@@ -277,6 +296,7 @@ def check_deployment_status(api_token: str, workflow_id: str):
 
 
 def load_inputs() -> dict:
+    """Load the inputs for the workflow"""
     logger.info("Loading inputs")
     if GITHUB_REPO:
         repo = g.get_repo(GITHUB_REPO)
@@ -297,6 +317,7 @@ def load_inputs() -> dict:
 
 
 def execute_workflow(api_token: str, workflow_id: str) -> str:
+    """Execute the workflow"""
     logger.info("Preparing to execute workflow")
     inputs = load_inputs()
     inputs["inputs"].update({"workspace": USERNAME})
@@ -321,6 +342,7 @@ def execute_workflow(api_token: str, workflow_id: str) -> str:
 
 
 def monitor_workflow(api_token: str, job_id: str) -> str:
+    """Monitor the workflow execution and wait for results"""
     logger.info("Monitoring workflow")
     response = requests.get(
         f"{WORKFLOW_API_URL}/{USERNAME}/ogc-api/jobs/{job_id}",
@@ -362,6 +384,7 @@ def monitor_workflow(api_token: str, job_id: str) -> str:
 
 
 def check_outputs_in_s3(api_token: str, results_link: str):
+    """Check the outputs are available in S3 (DEBUG ONLY)"""
     logger.info("Checking outputs found at %s", results_link)
     # Get resulting collection
     collection_response = requests.get(
@@ -387,13 +410,18 @@ def check_outputs_in_s3(api_token: str, results_link: str):
                 try:
                     client.get_object(Bucket=bucket, Key=key)
                     logger.info("S3 key found: %s", key)
-                except client.exceptions.NoSuchKey:
-                    logger.error("S3 key not found: %s", key)
-                    sys.exit(1)
+                except botocore.exceptions.ClientError as err:
+                    if err.response["Error"]["Code"] == "NoSuchKey":
+                        logger.error("S3 key not found: %s", key)
+                        sys.exit(1)
+                    else:
+                        logger.error("Failed to find key %s in bucket", key)
+                        logger.error(err)
     logger.info("Outputs checked")
 
 
 def get_asset_from_s3(collection: dict) -> dict:
+    """Get the asset from S3 (DEBUG ONLY)"""
     # Identify item
     links = collection.get("links")
     for link in links:
@@ -409,12 +437,19 @@ def get_asset_from_s3(collection: dict) -> dict:
                     logger.info("S3 key found: %s", key)
                     item_body = json.loads(item["Body"].read())
                     return item_body
-                except client.exceptions.NoSuchKey:
-                    logger.error("S3 key not found: %s", key)
-                    sys.exit(1)
+                except botocore.exceptions.ClientError as err:
+                    if err.response["Error"]["Code"] == "NoSuchKey":
+                        # File key does not exist
+                        logger.error("S3 key not found: %s", key)
+                        sys.exit(1)
+                    else:
+                        logger.error("Failed to find key %s in bucket", key)
+                        logger.error(err)
+                        sys.exit(1)
 
 
 def get_asset_from_rc(api_token: str, collection: dict) -> dict:
+    """Get the asset from the Resource Catalogue"""
     logger.info("Identifying asset from Resource Catalogue")
     id = collection.get("id")
     catalog_id = f"cat_{id}"
@@ -439,6 +474,7 @@ def get_asset_from_rc(api_token: str, collection: dict) -> dict:
 
 
 def check_s3_access_token(api_token: str, results_link: str):
+    """Check the S3 access token is valid"""
     logger.info("Checking S3 access token")
     # Using results links, identify an asset href
     collection_response = requests.get(
@@ -509,4 +545,5 @@ if __name__ == "__main__":
         check_outputs_in_s3(api_token, results_link)
     # Check token allows outputs to be downloaded
     check_s3_access_token(api_token, results_link)
+    ## Final result
     logger.info("Test is successful")
