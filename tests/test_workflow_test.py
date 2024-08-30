@@ -1,4 +1,5 @@
 import importlib
+import io
 import json
 import os
 import unittest
@@ -247,7 +248,14 @@ class TestWorkflowProcessing(unittest.TestCase):
         from workflow_test.__main__ import deploy_workflow
 
         # Configure mocks
-        mock.post("https://workflow-api-url.com/username/ogc-api/processes", status_code=201)
+        mock.post(
+            "https://workflow-api-url.com/username/ogc-api/processes",
+            status_code=201,
+            headers={
+                "Location": "https://workflow-api-url.com/username/ogc-api/processes/test-convert-url",
+                "Content-Type": "application/json",
+            },
+        )
         mock_logger_instance = mock_logger.return_value
         mock_logger_instance.info.return_value = None
 
@@ -433,37 +441,61 @@ class TestWorkflowOutputs(unittest.TestCase):
         os.environ.update(self.original_environ)
 
     @requests_mock.Mocker()
-    @patch("workflow_test.__main__.client", return_value=None)
+    @patch("workflow_test.__main__.client")
     def test_check_outputs_s3(self, mock, mock_boto3_client):
-        # Only used for debug, not unit tested
-        pass
         # Import the module to ensure it reads the new environment variables
-        # from workflow_test.__main__ import check_outputs_in_s3
+        from workflow_test.__main__ import check_outputs_in_s3
 
-        # # Configure mocks
-        # test_url = "https://workflow-api-url.com/username/ogc-api/jobs/test_job_id/results"
-        # mock.get(test_url, status_code=200, json=lambda request, context: {"links":
-        # [{"rel": "root", "href": "s3://bucket/root_link"},
-        #  {"rel": "self", "href": "s3://bucket/self_link"},
-        #  {"rel": "item", "href": "s3://bucket/item_link"},]})
-        # mock_s3_client = mock_boto3_client.return_value
-        # #mock_s3_client.get_object.return_value = None
+        # Configure mocks
+        test_url = "https://workflow-api-url.com/username/ogc-api/jobs/test_job_id/results"
+        mock.get(
+            test_url,
+            status_code=200,
+            json=lambda request, context: {
+                "links": [
+                    {"rel": "root", "href": "s3://bucket_name/path/root_link"},
+                    {"rel": "self", "href": "s3://bucket_name/path/self_link"},
+                    {"rel": "item", "href": "s3://bucket_name/path/item_link"},
+                ]
+            },
+        )
 
-        # check_outputs_in_s3("valid-api-token", "https://workflow-api-url.com/username/ogc-api/jobs/test_job_id/results")
+        mock_boto3_client.get_object.return_value = None
+
+        check_outputs_in_s3(
+            "valid-api-token",
+            "https://workflow-api-url.com/username/ogc-api/jobs/test_job_id/results",
+        )
+
+        calls = mock_boto3_client.get_object.call_args_list
+        assert calls[0][1]["Bucket"] == "bucket_name"
+        assert calls[0][1]["Key"] == "path/root_link"
+        assert calls[1][1]["Bucket"] == "bucket_name"
+        assert calls[1][1]["Key"] == "path/self_link"
+        assert calls[2][1]["Bucket"] == "bucket_name"
+        assert calls[2][1]["Key"] == "path/item_link"
 
     @requests_mock.Mocker()
-    def test_get_asset_s3(self, mock):
-        # Only used for debug, not unit tested
-        pass
-        # Reload the module to ensure it reads the new environment variables
-        # from workflow_test import __main__
+    @patch("workflow_test.__main__.client")
+    def test_get_asset_s3(self, mock, mock_boto3_client):
+        # Import the module to ensure it reads the new environment variables
+        from workflow_test.__main__ import get_asset_from_s3
 
-        # importlib.reload(__main__)
-        # from workflow_test.__main__ import get_asset_from_s3
+        test_item = '{"id": "test_item", "links": [{"rel": "self", "href": "s3://bucket_name/path/item_link"}]}'
+        test_item_string = io.StringIO(test_item)
+        test_boto_response = {"Body": test_item_string}
 
-        # item_body = get_asset_from_s3()
+        # Configure mocks
+        mock_boto3_client.get_object.return_value = test_boto_response
 
-        # assert item_body
+        test_collection = {"links": [{"rel": "item", "href": "s3://bucket_name/path/item_link"}]}
+
+        item_body = get_asset_from_s3(test_collection)
+
+        assert item_body == {
+            "id": "test_item",
+            "links": [{"rel": "self", "href": "s3://bucket_name/path/item_link"}],
+        }
 
     @requests_mock.Mocker()
     def test_get_asset_rc(self, mock):
