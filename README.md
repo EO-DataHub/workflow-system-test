@@ -42,6 +42,17 @@ A number of `make` targets are defined:
 * `make dockerpush`: push a `latest` Docker image (again, you can add `VERSION=1.2.3`) - normally this should be done
   only via the build system and its GitHub actions.
 
+
+## Running locally
+
+To run this code locally you can run the following steps:
+* Configure environment variables as found in the `sample-env` file, copy this to a new file named `.env`
+  * Note, whenever `GITHUB_REPO` is defined, the test will attempt to load the specified workflow and inputs files from a GitHub repository, if you wish to load locally, unset this variable: `unset GITHUB_REPO`
+* Load the environment variables by running `source .env`
+* Set the `DEBUG` environment variable as required, note when using `DEBUG` you will need to specify AWS credentials for S3 access
+* Run the code from the root of the repository `python workflow_test`
+* You can monitor the test progress via the logging outputs to the command line
+
 ## Managing requirements
 
 Requirements are specified in `pyproject.toml`, with development requirements listed separately. Specify version
