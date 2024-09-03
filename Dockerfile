@@ -16,5 +16,5 @@ RUN --mount=type=cache,target=/root/.cache/pip pip3 install -r requirements.txt 
 ADD workflow_test ./workflow_test/
 ADD examples ./examples/
 
-CMD ["python", "workflow_test"]
+ENTRYPOINT ["python", "-m", "system_test"]
 
