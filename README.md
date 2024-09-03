@@ -53,11 +53,11 @@ To run this code locally you can run the following steps:
 * Run the code from the root of the repository specifying required arguments for the test:
 1. Loading workflow files locally
 ```sh
-python -m system_test workflow <auth-token-api-url> <ades-api-url> <resource-catalogue-api-url> <path-to-local-workflow-file> <path-to-local-inputs-file>
+python -m system_tests workflow <auth-token-api-url> <ades-api-url> <resource-catalogue-api-url> <path-to-local-workflow-file> <path-to-local-inputs-file>
 ```
 2. Loading workflow files remotely from GitHub
 ```sh
-python -m system_test workflow <auth-token-api-url> <ades-api-url> <resource-catalogue-api-url> <path-to-remote-workflow-file> <path-to-remote-inputs-file> --github-repo <github-repo-name> --github-branch <github-branch-name>
+python -m system_tests workflow <auth-token-api-url> <ades-api-url> <resource-catalogue-api-url> <path-to-remote-workflow-file> <path-to-remote-inputs-file> --github-repo <github-repo-name> --github-branch <github-branch-name>
 ```
 
 This CLI also supports shorthand arguments for `--github-repo` : `-gr` and `--github-branch` : `-gb`. 

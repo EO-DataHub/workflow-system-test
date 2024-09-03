@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from system_test.ades import ADESClient
-from system_test.cwl_loader import CWLFile
+from system_tests.ades import ADESClient
+from system_tests.cwl_loader import CWLFile
 
 
 class TestEODHPClient(unittest.TestCase):
@@ -16,8 +16,8 @@ class TestEODHPClient(unittest.TestCase):
         assert ades_client.username == "username"
         assert ades_client.user_url == "https://test-ades-url/username"
 
-    @patch("system_test.ades.requests")  # Mock the requests module
-    @patch("system_test.ades.logger")  # Mock the logger module
+    @patch("system_tests.ades.requests")  # Mock the requests module
+    @patch("system_tests.ades.logger")  # Mock the logger module
     def test_check_status(self, mock_logger, MockRequests):
         ades_client = ADESClient("https://test-ades-url", "username")
         # Configure mocks
@@ -46,8 +46,8 @@ class TestEODHPClient(unittest.TestCase):
 
         assert calls[4][0][0] == "ADES is running"
 
-    @patch("system_test.ades.requests")  # Mock the requests module
-    @patch("system_test.ades.logger")  # Mock the logger module
+    @patch("system_tests.ades.requests")  # Mock the requests module
+    @patch("system_tests.ades.logger")  # Mock the logger module
     def test_check_api_token(self, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
@@ -67,8 +67,8 @@ class TestEODHPClient(unittest.TestCase):
 
         assert calls[1][0][0] == "API token tested successfully"
 
-    @patch("system_test.ades.requests")  # Mock the requests module
-    @patch("system_test.ades.logger")  # Mock the logger module
+    @patch("system_tests.ades.requests")  # Mock the requests module
+    @patch("system_tests.ades.logger")  # Mock the logger module
     def test_undeploy_workflow(self, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
@@ -103,9 +103,9 @@ class TestEODHPClient(unittest.TestCase):
 
         ades_client.check_deployment_status_link(headers, cwl_file)
 
-    @patch("system_test.ades.requests")  # Mock the requests module
-    @patch("system_test.ades.logger")  # Mock the logger module
-    @patch("system_test.ades.ADESClient.check_deployment_status_link")  # Mock the logger module
+    @patch("system_tests.ades.requests")  # Mock the requests module
+    @patch("system_tests.ades.logger")  # Mock the logger module
+    @patch("system_tests.ades.ADESClient.check_deployment_status_link")  # Mock the logger module
     def test_deploy_workflow_url(self, mock_check_link, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
@@ -130,9 +130,9 @@ class TestEODHPClient(unittest.TestCase):
         assert calls[1][0][0] == "Workflow %s deployed successfully"
         assert calls[1][0][1] == "workflow_id"
 
-    @patch("system_test.ades.requests")  # Mock the requests module
-    @patch("system_test.ades.logger")  # Mock the logger module
-    @patch("system_test.ades.ADESClient.check_deployment_status_link")  # Mock the logger module
+    @patch("system_tests.ades.requests")  # Mock the requests module
+    @patch("system_tests.ades.logger")  # Mock the logger module
+    @patch("system_tests.ades.ADESClient.check_deployment_status_link")  # Mock the logger module
     def test_deploy_workflow_file(self, mock_check_link, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
@@ -157,8 +157,8 @@ class TestEODHPClient(unittest.TestCase):
         assert calls[1][0][0] == "Workflow %s deployed successfully"
         assert calls[1][0][1] == "workflow_id"
 
-    @patch("system_test.ades.requests")  # Mock the requests module
-    @patch("system_test.ades.logger")  # Mock the logger module
+    @patch("system_tests.ades.requests")  # Mock the requests module
+    @patch("system_tests.ades.logger")  # Mock the logger module
     def test_check_deployment_status(self, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
@@ -188,8 +188,8 @@ class TestEODHPClient(unittest.TestCase):
         assert calls[1][0][0] == "Workflow %s is available"
         assert calls[1][0][1] == "workflow_id"
 
-    @patch("system_test.ades.requests")  # Mock the requests module
-    @patch("system_test.ades.logger")  # Mock the logger module
+    @patch("system_tests.ades.requests")  # Mock the requests module
+    @patch("system_tests.ades.logger")  # Mock the logger module
     def test_execute_workflow(self, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
@@ -219,8 +219,8 @@ class TestEODHPClient(unittest.TestCase):
         assert calls[2][0][1] == "workflow_id"
         assert calls[2][0][2] == "job_id"
 
-    @patch("system_test.ades.requests")  # Mock the requests module
-    @patch("system_test.ades.logger")  # Mock the logger module
+    @patch("system_tests.ades.requests")  # Mock the requests module
+    @patch("system_tests.ades.logger")  # Mock the logger module
     def test_monitor_workflow(self, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",

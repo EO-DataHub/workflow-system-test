@@ -2,7 +2,7 @@ import io
 import unittest
 from unittest.mock import Mock, patch
 
-from system_test.eodhp import EODHPClient
+from system_tests.eodhp import EODHPClient
 
 
 class TestEODHPClient(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestEODHPClient(unittest.TestCase):
         assert eodhp_client.client_secret == "client_secret"
         assert eodhp_client.api_token is None
 
-    @patch("system_test.eodhp.requests")  # Mock the requests module
+    @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_refresh_token(self, MockRequests):
         # Configure mocks
         mock_response = Mock()
@@ -45,7 +45,7 @@ class TestEODHPClient(unittest.TestCase):
 
         assert refresh_token == "test_refresh_token"
 
-    @patch("system_test.eodhp.requests")  # Mock the requests module
+    @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_access_token(self, MockRequests):
         # Configure mocks
         mock_response = Mock()
@@ -101,7 +101,7 @@ class TestEODHPClient(unittest.TestCase):
             "links": [{"rel": "self", "href": "s3://bucket_name/path/item_link"}],
         }
 
-    @patch("system_test.eodhp.requests")  # Mock the requests module
+    @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_item_from_rc(self, MockRequests):
         eodhp_client = EODHPClient(
             "https://test-auth-url",
@@ -143,7 +143,7 @@ class TestEODHPClient(unittest.TestCase):
             "links": [{"rel": "self", "href": "s3://bucket_name/path/item_link1"}],
         }
 
-    @patch("system_test.eodhp.requests")  # Mock the requests module
+    @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_result_collection(self, MockRequests):
         eodhp_client = EODHPClient(
             "https://test-auth-url",
@@ -174,10 +174,10 @@ class TestEODHPClient(unittest.TestCase):
             "links": [{"rel": "item", "href": "s3://test-bucket/test-key"}],
         }
 
-    @patch("system_test.eodhp.requests")  # Mock the requests module
-    @patch("system_test.eodhp.EODHPClient.get_result_collection")  # Mock the load_inputs method
-    @patch("system_test.eodhp.EODHPClient.get_item_from_rc")  # Mock the load_inputs method
-    @patch("system_test.eodhp.logger")  # Mock the logger module
+    @patch("system_tests.eodhp.requests")  # Mock the requests module
+    @patch("system_tests.eodhp.EODHPClient.get_result_collection")  # Mock the load_inputs method
+    @patch("system_tests.eodhp.EODHPClient.get_item_from_rc")  # Mock the load_inputs method
+    @patch("system_tests.eodhp.logger")  # Mock the logger module
     def test_check_s3_access_token(
         self, mock_logger, mock_get_item_from_rc, mock_get_result_collection, MockRequests
     ):
@@ -233,8 +233,8 @@ class TestEODHPClient(unittest.TestCase):
         assert calls[2][0][1] == "asset_2"
         assert calls[2][0][2] == "https://data-access/path/asset_link2"
 
-    @patch("system_test.eodhp.EODHPClient.get_result_collection")  # Mock the load_inputs method
-    @patch("system_test.eodhp.logger")  # Mock the logger module
+    @patch("system_tests.eodhp.EODHPClient.get_result_collection")  # Mock the load_inputs method
+    @patch("system_tests.eodhp.logger")  # Mock the logger module
     def test_check_outputs_in_s3(self, mock_logger, mock_get_result_collection):
         eodhp_client = EODHPClient(
             "https://test-auth-url",

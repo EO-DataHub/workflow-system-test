@@ -13,8 +13,8 @@ ADD LICENSE.txt requirements.txt ./
 ADD pyproject.toml ./
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install -r requirements.txt .
 
-ADD workflow_test ./workflow_test/
+ADD system_tests ./system_tests/
 ADD examples ./examples/
 
-ENTRYPOINT ["python", "-m", "system_test"]
+ENTRYPOINT ["python", "-m", "system_tests"]
 

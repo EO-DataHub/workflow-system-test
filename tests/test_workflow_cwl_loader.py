@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from system_test.cwl_loader import FileCWLLoader, GitCWLLoader
+from system_tests.cwl_loader import FileCWLLoader, GitCWLLoader
 
 
 class TestFileCWLLoader(unittest.TestCase):
@@ -44,7 +44,7 @@ class TestGitCWLLoader(unittest.TestCase):
         assert cwl_loader.branch_name == "test-branch"
         assert cwl_loader._g is not None
 
-    @patch("system_test.cwl_loader.Github")  # Mock the Github class
+    @patch("system_tests.cwl_loader.Github")  # Mock the Github class
     def test_load_inputs(self, MockGithub):
         # Mock the Github instance
         mock_github_instance = MockGithub.return_value
@@ -64,8 +64,8 @@ class TestGitCWLLoader(unittest.TestCase):
 
         assert inputs == {"inputs": "test"}
 
-    @patch("system_test.cwl_loader.Github")  # Mock the Github class
-    @patch("system_test.cwl_loader.GitCWLLoader.load_inputs")  # Mock the load_inputs method
+    @patch("system_tests.cwl_loader.Github")  # Mock the Github class
+    @patch("system_tests.cwl_loader.GitCWLLoader.load_inputs")  # Mock the load_inputs method
     def test_git_cwl_loader_initialization(self, mock_load_inputs, MockGithub):
         # Mock the Github instance
         mock_github_instance = MockGithub.return_value
