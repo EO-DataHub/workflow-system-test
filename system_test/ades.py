@@ -202,7 +202,7 @@ class ADESClient:
                 elif response.json().get("status") == "failed":
                     logger.error("Workflow failed, job id: %s", job_id)
                     logger.error(response.json().get("message"))
-                    raise Exception("Workflow failed")
+                    raise Exception("Workflow failed during execution")
                 else:
                     logger.info(
                         "Workflow still running, message: %s", response.json().get("message")
