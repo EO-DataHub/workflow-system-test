@@ -1,12 +1,13 @@
 # workflow-system-test
 
-This repository provides a full end-to-end systems test of the workflow system included in EODHP. This test will be packaged up into a Docker image that can be deployed to the cluster for triggerable testing.
+This repository provides a full end-to-end systems test of the workflow system included in EODHP. This test is wrapped in a CLI and packaged up into a Docker image that can be deployed to the cluster for triggerable testing.
 It runs through the following steps:
 1. Request an API token using new auth-agent API
 2. Publish a workflow from a git repository
 3. Execute the workflow
 4. Poll (with reasonable timeout) until final result is available, and check it is successful
-5. Check expected file is available from S3 via HTTPS
+5. Check workflow outputs are available in the Resource Catalogue
+6. Check expected asset file is available from S3 via HTTPS
 
 # Development of this component
 
@@ -45,13 +46,25 @@ A number of `make` targets are defined:
 
 ## Running locally
 
+This repo provides a CLI to allow running of systems-level tests. Currently only a single system test is provided which tests the workflow runner component of the Hub.
 To run this code locally you can run the following steps:
 * Configure environment variables as found in the `sample-env` file, copy this to a new file named `.env`
-  * Note, whenever `GITHUB_REPO` is defined, the test will attempt to load the specified workflow and inputs files from a GitHub repository, if you wish to load locally, unset this variable: `unset GITHUB_REPO`
 * Load the environment variables by running `source .env`
-* Set the `DEBUG` environment variable as required, note when using `DEBUG` you will need to specify AWS credentials for S3 access
-* Run the code from the root of the repository `python workflow_test`
-* You can monitor the test progress via the logging outputs to the command line
+* Run the code from the root of the repository specifying required arguments for the test:
+1. Loading workflow files locally
+```sh
+python -m system_test workflow <auth-token-api-url> <ades-api-url> <resource-catalogue-api-url> <path-to-local-workflow-file> <path-to-local-inputs-file>
+```
+2. Loading workflow files remotely from GitHub
+```sh
+python -m system_test workflow <auth-token-api-url> <ades-api-url> <resource-catalogue-api-url> <path-to-remote-workflow-file> <path-to-remote-inputs-file> --github-repo <github-repo-name> --github-branch <github-branch-name>
+```
+
+This CLI also supports shorthand arguments for `--github-repo` : `-gr` and `--github-branch` : `-gb`. 
+
+You can also configure the `--debug` flag and two timeouts from the command line, `--boot-timeout` and `--monitor-timeout`, to specify the time to wait for the ADES to become available and for the workflow to finish executing respectively.
+
+You can monitor the test progress via the logging outputs to the command line
 
 ## Managing requirements
 
