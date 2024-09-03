@@ -28,6 +28,7 @@ click==8.1.7
     # via
     #   black
     #   pip-tools
+    #   workflow-system-test (pyproject.toml)
 cryptography==43.0.0
     # via pyjwt
 deprecated==1.2.14
