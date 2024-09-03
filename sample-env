@@ -6,25 +6,7 @@ export PASSWORD="user_password"
 export CLIENT_ID="client_id"
 export CLIENT_SECRET="client_secret"
 
-
-# API details
-export AUTH_TOKEN_API_URL="https://example-auth-token-api-url"
-export WORKFLOW_API_URL="https://example-workflow-api-url"
-export RESOURCE_CATALOGUE_API_URL="https://example-resource-catalogue-api-url"
-
-# Workflow location details - URL
-export GITHUB_REPO="org_name/repo_name" # Remove this env variable if you wish to load from a local file instead
-export GITHUB_BRANCH="main"
-export WORKFLOW_FILE="path/to/workflow-file.cwl"
-export INPUTS_FILE="path/to/inputs-file.json"
-
-# Workflow location details - Local
-# export WORKFLOW_FILE="path/to/workflow-file.cwl"
-# export INPUTS_FILE="path/to/inputs-file.json"
-
 # AWS Credentials - DEBUG only
 # export AWS_ACCESS_KEY="access_key"
 # export AWS_SECRET_ACCESS_KEY="secret_access_key"
 
-# Set DEBUG
-export DEBUG="false"
