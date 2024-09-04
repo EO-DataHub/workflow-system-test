@@ -41,9 +41,16 @@ class FileCWLLoader(CWLLoader):
         with open(self.cwl_filename, "r") as workflow_file:
             workflow_file = workflow_file.read()
         cwl_file_dict = yaml.safe_load(workflow_file)
+        new_workflow_id = cwl_file_dict["$graph"][0]["id"].split("__")[0]
         cwl_file_dict["$graph"][0]["id"] = (
-            cwl_file_dict["$graph"][0]["id"] + "__" + time.strftime("%Y-%m-%dT%H-%M-%S")
+            new_workflow_id + "__" + time.strftime("%Y-%m-%dT%H-%M-%S")
         )
+        # Convert the dictionary back to YAML
+        updated_workflow_content = yaml.dump(cwl_file_dict)
+        # Write the updated content back to the file
+        with open(self.cwl_filename, "w") as workflow_file:
+            workflow_file.write(updated_workflow_content)
+
         return CWLFile(cwl_file_dict, self.load_inputs(), self.get_location())
 
     def load_inputs(self) -> dict:
