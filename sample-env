@@ -1,0 +1,12 @@
+# Username and Password
+export USERNAME="user_username"
+export PASSWORD="user_password"
+
+# OAuth2 details
+export CLIENT_ID="client_id"
+export CLIENT_SECRET="client_secret"
+
+# AWS Credentials - DEBUG only
+# export AWS_ACCESS_KEY="access_key"
+# export AWS_SECRET_ACCESS_KEY="secret_access_key"
+
