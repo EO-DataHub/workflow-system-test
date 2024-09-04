@@ -141,12 +141,10 @@ def workflow(
     except Exception as e:
         logger.error("Workflow system test failed")
         logger.error(e)
-        # Undeploy test workflow
-        ades_client.undeploy_workflow(cwl_file_id)
-        sys.exit(1)
     finally:
         # Undeploy test workflow
         ades_client.undeploy_workflow(cwl_file_id)
+        sys.exit(1)
 
     ## Final result
     logger.info("Test is successful")
