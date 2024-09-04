@@ -42,7 +42,7 @@ class FileCWLLoader(CWLLoader):
             workflow_file = workflow_file.read()
         cwl_file_dict = yaml.safe_load(workflow_file)
         cwl_file_dict["$graph"][0]["id"] = (
-            cwl_file_dict["$graph"][0]["id"] + "__" + time.strftime("%Y-%m-%d %H:%M:%S")
+            cwl_file_dict["$graph"][0]["id"] + "__" + time.strftime("%Y-%m-%dT%H-%M-%S")
         )
         return CWLFile(cwl_file_dict, self.load_inputs(), self.get_location())
 
