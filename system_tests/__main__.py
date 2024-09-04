@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import time
 
 import boto3
@@ -144,7 +143,6 @@ def workflow(
     finally:
         # Undeploy test workflow
         ades_client.undeploy_workflow(cwl_file_id)
-        sys.exit(1)
 
     ## Final result
     logger.info("Test is successful")
