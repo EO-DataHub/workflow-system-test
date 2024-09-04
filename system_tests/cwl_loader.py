@@ -1,4 +1,5 @@
 import json
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -39,7 +40,11 @@ class FileCWLLoader(CWLLoader):
     def load_cwl(self) -> CWLFile:
         with open(self.cwl_filename, "r") as workflow_file:
             workflow_file = workflow_file.read()
-        return CWLFile(yaml.safe_load(workflow_file), self.load_inputs(), self.get_location())
+        cwl_file_dict = yaml.safe_load(workflow_file)
+        cwl_file_dict["$graph"][0]["id"] = (
+            cwl_file_dict["$graph"][0]["id"] + "__" + time.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        return CWLFile(cwl_file_dict, self.load_inputs(), self.get_location())
 
     def load_inputs(self) -> dict:
         with open(self.inputs_filename, "r") as inputs_file:

@@ -20,16 +20,20 @@ class TestFileCWLLoader(unittest.TestCase):
 
         assert inputs is not None
 
-    def test_load_cwl(self):
+    @patch("system_tests.cwl_loader.time")  # Mock the time module
+    def test_load_cwl(self, mock_time):
         cwl_loader = FileCWLLoader(
             "examples/convert-url-app.cwl", "examples/convert-url-app-inputs.json"
         )
+
+        mock_time.strftime.return_value = "2021-09-01 15:00:00"
 
         cwl_file = cwl_loader.load_cwl()
 
         assert cwl_file.cwl_data is not None
         assert cwl_file.cwl_inputs is not None
         assert cwl_file.location == "examples/convert-url-app.cwl"
+        assert cwl_file.get_workflow_id() == "test-convert-url__2021-09-01 15:00:00"
 
 
 class TestGitCWLLoader(unittest.TestCase):
@@ -66,7 +70,7 @@ class TestGitCWLLoader(unittest.TestCase):
 
     @patch("system_tests.cwl_loader.Github")  # Mock the Github class
     @patch("system_tests.cwl_loader.GitCWLLoader.load_inputs")  # Mock the load_inputs method
-    def test_git_cwl_loader_initialization(self, mock_load_inputs, MockGithub):
+    def test_load_cwl(self, mock_load_inputs, MockGithub):
         # Mock the Github instance
         mock_github_instance = MockGithub.return_value
         mock_load_inputs.return_value = {"inputs": "test"}
@@ -74,7 +78,7 @@ class TestGitCWLLoader(unittest.TestCase):
         # Configure mocks
         mock_contents = Mock()
         mock_repo = Mock()
-        mock_contents.decoded_content = b'{"cwl": "test"}'
+        mock_contents.decoded_content = b'{"$graph": [{"id": "test-convert-url"}]}'
         mock_repo.get_contents.return_value = mock_contents
         mock_github_instance.get_repo.return_value = mock_repo
 
@@ -84,9 +88,10 @@ class TestGitCWLLoader(unittest.TestCase):
 
         cwl_file = cwl_loader.load_cwl()
 
-        assert cwl_file.cwl_data == {"cwl": "test"}
+        assert cwl_file.cwl_data == {"$graph": [{"id": "test-convert-url"}]}
         assert cwl_file.cwl_inputs == {"inputs": "test"}
         assert (
             cwl_file.location
             == "https://raw.githubusercontent.com/test-repo/test-branch/test-filename.cwl"
         )
+        assert cwl_file.get_workflow_id() == "test-convert-url"
