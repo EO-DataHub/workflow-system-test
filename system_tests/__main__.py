@@ -137,15 +137,18 @@ def workflow(
 
         # Check token allows outputs to be downloaded
         eodhp_client.check_s3_access_token(results_link, debug)
+        ## Final result
+        success = True
+        logger.info("Test is successful")
     except Exception as e:
         logger.error("Workflow system test failed")
         logger.error(e)
+        success = False
     finally:
         # Undeploy test workflow
         ades_client.undeploy_workflow(cwl_file_id)
-
-    ## Final result
-    logger.info("Test is successful")
+        if not success:
+            raise Exception("Workflow system test failed")
 
 
 if __name__ == "__main__":
