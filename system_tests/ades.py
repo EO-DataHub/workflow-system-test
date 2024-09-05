@@ -193,6 +193,8 @@ class ADESClient:
                 if response.json().get("status") == "successful":
                     logger.info("Workflow completed, job id: %s", job_id)
                     links = response.json().get("links")
+                    self.check_logs_access(links)
+                    results_link = ""
                     for link in links:
                         if link.get("title") == "Result location":
                             results_link = link.get("href")
@@ -224,3 +226,22 @@ class ADESClient:
 
         logger.error("Workflow timed out, job id: %s", job_id)
         raise Exception("Workflow timed out")
+
+    def check_logs_access(self, links: list):
+        """Check the logs are accessible"""
+        logger.info("Checking logs are accessible")
+        for link in links:
+            if link.get("title") == "Tool log node_stage_out.log":
+                logs_link = link.get("href")
+                break
+        if not logs_link:
+            logger.warning("Failed to find logs link")
+        response = requests.get(
+            logs_link,
+            headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
+        )
+        if response.status_code == 200:
+            logger.info("Logs are accessible")
+        else:
+            logger.error("Failed to get logs: %s", response.json())
+            raise Exception("Failed to access logs")

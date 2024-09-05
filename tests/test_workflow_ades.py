@@ -219,9 +219,10 @@ class TestEODHPClient(unittest.TestCase):
         assert calls[2][0][1] == "workflow_id"
         assert calls[2][0][2] == "job_id"
 
+    @patch("system_tests.ades.ADESClient.check_logs_access")  # Mock the requests module
     @patch("system_tests.ades.requests")  # Mock the requests module
     @patch("system_tests.ades.logger")  # Mock the logger module
-    def test_monitor_workflow(self, mock_logger, MockRequests):
+    def test_monitor_workflow(self, mock_logger, MockRequests, mock_check_logs_access):
         ades_client = ADESClient(
             "https://test-ades-url",
             "username",
@@ -230,6 +231,7 @@ class TestEODHPClient(unittest.TestCase):
         ades_client.set_api_token(api_token)
 
         # Configure mocks
+        mock_check_logs_access.return_value = None
         mock_response_1 = Mock()
         mock_response_1.status_code = 200
         mock_response_1.json.return_value = {
@@ -245,7 +247,11 @@ class TestEODHPClient(unittest.TestCase):
                 {
                     "title": "Result location",
                     "href": "https:/test-ades-url/username/jobs/job_id/results",
-                }
+                },
+                {
+                    "title": "Tool log node_stage_out.log",
+                    "href": "https://test-ades-url/temp/workflow/stage-out.log",
+                },
             ],
         }
         MockRequests.get.side_effect = [mock_response_1, mock_response_2]
@@ -261,3 +267,34 @@ class TestEODHPClient(unittest.TestCase):
         assert calls[1][0][1] == "process is running"
         assert calls[2][0][0] == "Workflow completed, job id: %s"
         assert calls[2][0][1] == "job_id"
+
+    @patch("system_tests.ades.requests")  # Mock the requests module
+    @patch("system_tests.ades.logger")  # Mock the logger module
+    def test_check_logs_access(self, mock_logger, MockRequests):
+        ades_client = ADESClient(
+            "https://test-ades-url",
+            "username",
+        )
+
+        # Configure mocks
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = None
+        MockRequests.get.return_value = mock_response
+
+        links = [
+            {
+                "title": "Result location",
+                "href": "https:/test-ades-url/username/jobs/job_id/results",
+            },
+            {
+                "title": "Tool log node_stage_out.log",
+                "href": "https://test-ades-url/temp/workflow/stage-out.log",
+            },
+        ]
+
+        ades_client.check_logs_access(links)
+
+        calls = mock_logger.info.call_args_list
+
+        assert calls[1][0][0] == "Logs are accessible"
