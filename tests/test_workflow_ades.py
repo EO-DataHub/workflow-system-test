@@ -16,11 +16,13 @@ class TestEODHPClient(unittest.TestCase):
         assert ades_client.username == "username"
         assert ades_client.user_url == "https://test-ades-url/username"
 
+    @patch("system_tests.ades.time.sleep")  # Mock the requests module
     @patch("system_tests.ades.requests")  # Mock the requests module
     @patch("system_tests.ades.logger")  # Mock the logger module
-    def test_check_status(self, mock_logger, MockRequests):
+    def test_check_status(self, mock_logger, MockRequests, mock_sleep):
         ades_client = ADESClient("https://test-ades-url", "username")
         # Configure mocks
+        mock_sleep.return_value = None
         mock_response_1 = Mock()
         mock_response_1.status_code = 404
         mock_response_2 = Mock()
@@ -37,7 +39,6 @@ class TestEODHPClient(unittest.TestCase):
                 },
             ]
         }
-        # This will take 5 seconds to complete due to sleep command when waiting for status change
         MockRequests.get.side_effect = [mock_response_1, mock_response_2]
 
         ades_client.check_status()
@@ -219,10 +220,11 @@ class TestEODHPClient(unittest.TestCase):
         assert calls[2][0][1] == "workflow_id"
         assert calls[2][0][2] == "job_id"
 
+    @patch("system_tests.ades.time.sleep")  # Mock the requests module
     @patch("system_tests.ades.ADESClient.check_logs_access")  # Mock the requests module
     @patch("system_tests.ades.requests")  # Mock the requests module
     @patch("system_tests.ades.logger")  # Mock the logger module
-    def test_monitor_workflow(self, mock_logger, MockRequests, mock_check_logs_access):
+    def test_monitor_workflow(self, mock_logger, MockRequests, mock_check_logs_access, mock_sleep):
         ades_client = ADESClient(
             "https://test-ades-url",
             "username",
@@ -231,6 +233,7 @@ class TestEODHPClient(unittest.TestCase):
         ades_client.set_api_token(api_token)
 
         # Configure mocks
+        mock_sleep.return_value = None
         mock_check_logs_access.return_value = None
         mock_response_1 = Mock()
         mock_response_1.status_code = 200
@@ -256,7 +259,6 @@ class TestEODHPClient(unittest.TestCase):
         }
         MockRequests.get.side_effect = [mock_response_1, mock_response_2]
 
-        # This will take 5 seconds to run as there is a sleep command while monitoring the workflow
         results_link = ades_client.monitor_workflow("job_id")
 
         assert results_link == "https:/test-ades-url/username/jobs/job_id/results"
