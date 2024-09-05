@@ -243,5 +243,8 @@ class ADESClient:
         if response.status_code == 200:
             logger.info("Logs are accessible")
         else:
-            logger.error("Failed to get logs: %s", response.json())
+            try:
+                logger.error("Failed to get logs: %s", response.json())
+            except JSONDecodeError:
+                logger.error("Failed to get logs: %s", response.text)
             raise Exception("Failed to access logs")
