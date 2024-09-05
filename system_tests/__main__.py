@@ -147,6 +147,7 @@ def workflow(
     finally:
         # Undeploy test workflow
         ades_client.undeploy_workflow(cwl_file_id)
+        # Raise error is necessary
         if not success:
             raise Exception("Workflow system test failed")
 
