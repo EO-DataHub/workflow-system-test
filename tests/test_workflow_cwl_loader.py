@@ -33,7 +33,7 @@ class TestFileCWLLoader(unittest.TestCase):
         assert cwl_file.cwl_data is not None
         assert cwl_file.cwl_inputs is not None
         assert cwl_file.location == "examples/convert-url-app.cwl"
-        assert cwl_file.get_workflow_id() == "test-convert-url__2021-09-01T15-00-00"
+        assert cwl_file.get_workflow_id() == "test-convert-url--2021-09-01T15-00-00"
 
 
 class TestGitCWLLoader(unittest.TestCase):
