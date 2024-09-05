@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import time
 
 import boto3
@@ -149,7 +150,7 @@ def workflow(
         ades_client.undeploy_workflow(cwl_file_id)
         # Raise error is necessary
         if not success:
-            raise Exception("Workflow system test failed")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
