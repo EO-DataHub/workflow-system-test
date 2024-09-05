@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)  # Add this line to define the logger
 
 @click.group()
 def cli():
-    click.echo("Running test")
+    pass
 
 
 @cli.command()
