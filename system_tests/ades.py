@@ -259,7 +259,7 @@ class ADESClient:
             logger.info("Logs are accessible")
         else:
             try:
-                logger.error("Failed to get logs: %s", response.json())
+                logger.error("Failed to get logs at url: %s : %s", logs_link, response.json())
             except JSONDecodeError:
-                logger.error("Failed to get logs: %s", response.text)
+                logger.error("Failed to get logs at url: %s : %s", logs_link, response.text)
             raise Exception("Failed to access logs")
