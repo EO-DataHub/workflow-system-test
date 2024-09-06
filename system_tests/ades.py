@@ -236,9 +236,9 @@ class ADESClient:
             if link.get("title") == "Tool log node_stage_out.log":
                 logs_link = link.get("href")
         start_time = time.time()
-        final_timeout = start_time + 30  # Give 30 seconds for logs to be available
+        final_timeout = start_time + 60  # Give 60 seconds for logs to be available
         while not logs_link and time.time() < final_timeout:
-            logger.info("Waiting for logs to be available")
+            logger.info("Waiting for logs to become available")
             response = requests.get(
                 status_url,
                 headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
@@ -251,6 +251,7 @@ class ADESClient:
             time.sleep(5)
         if not logs_link:
             logger.warning("Failed to find logs link")
+            return
         response = requests.get(
             logs_link,
             headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},

@@ -26,14 +26,14 @@ class TestFileCWLLoader(unittest.TestCase):
             "examples/convert-url-app.cwl", "examples/convert-url-app-inputs.json"
         )
 
-        mock_time.strftime.return_value = "2021-09-01T15-00-00"
+        mock_time.strftime.return_value = "15-00-00"
 
         cwl_file = cwl_loader.load_cwl()
 
         assert cwl_file.cwl_data is not None
         assert cwl_file.cwl_inputs is not None
         assert cwl_file.location == "examples/convert-url-app.cwl"
-        assert cwl_file.get_workflow_id() == "test-convert-url--2021-09-01T15-00-00"
+        assert cwl_file.get_workflow_id() == "test-convert-url--15-00-00"
 
 
 class TestGitCWLLoader(unittest.TestCase):

@@ -42,9 +42,7 @@ class FileCWLLoader(CWLLoader):
             workflow_file = workflow_file.read()
         cwl_file_dict = yaml.safe_load(workflow_file)
         new_workflow_id = cwl_file_dict["$graph"][0]["id"].split("--")[0]
-        cwl_file_dict["$graph"][0]["id"] = (
-            new_workflow_id + "--" + time.strftime("%Y-%m-%dT%H-%M-%S")
-        )
+        cwl_file_dict["$graph"][0]["id"] = new_workflow_id + "--" + time.strftime("%H-%M-%S")
         # Convert the dictionary back to YAML
         updated_workflow_content = yaml.dump(cwl_file_dict)
         # Write the updated content back to the file

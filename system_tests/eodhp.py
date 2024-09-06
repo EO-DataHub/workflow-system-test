@@ -201,7 +201,10 @@ class EODHPClient:
                         logger.info("Asset: %s available for download from: %s", key, asset_href)
                     else:
                         logger.error("Failed to download asset: %s from %s", key, asset_href)
-                        logger.error(response.json())
+                        try:
+                            logger.error(response.json())
+                        except JSONDecodeError:
+                            logger.error(response.text)
                         raise Exception("Failed to download asset")
 
         logger.info("S3 access token checked successfully")
