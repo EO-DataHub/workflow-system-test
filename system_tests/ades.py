@@ -182,8 +182,9 @@ class ADESClient:
     def monitor_workflow(self, job_id: str) -> str:
         """Monitor the workflow execution and wait for results"""
         logger.info("Monitoring workflow")
+        status_url = f"{self.user_url}/ogc-api/jobs/{job_id}"
         response = requests.get(
-            f"{self.user_url}/ogc-api/jobs/{job_id}",
+            status_url,
             headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
         )
         start_time = time.time()
@@ -193,7 +194,7 @@ class ADESClient:
                 if response.json().get("status") == "successful":
                     logger.info("Workflow completed, job id: %s", job_id)
                     links = response.json().get("links")
-                    self.check_logs_access(links)
+                    self.check_logs_access(status_url, links)
                     results_link = ""
                     for link in links:
                         if link.get("title") == "Result location":
@@ -227,13 +228,27 @@ class ADESClient:
         logger.error("Workflow timed out, job id: %s", job_id)
         raise Exception("Workflow timed out")
 
-    def check_logs_access(self, links: list):
+    def check_logs_access(self, status_url: str, links: list):
         """Check the logs are accessible"""
         logger.info("Checking logs are accessible")
+        logs_link = ""
         for link in links:
             if link.get("title") == "Tool log node_stage_out.log":
                 logs_link = link.get("href")
-                break
+        start_time = time.time()
+        final_timeout = start_time + 30  # Give 30 seconds for logs to be available
+        while not logs_link and time.time() < final_timeout:
+            logger.info("Waiting for logs to be available")
+            response = requests.get(
+                status_url,
+                headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
+            )
+            links = response.json().get("links")
+            for link in links:
+                if link.get("title") == "Tool log node_stage_out.log":
+                    logs_link = link.get("href")
+                    break
+            time.sleep(5)
         if not logs_link:
             logger.warning("Failed to find logs link")
         response = requests.get(

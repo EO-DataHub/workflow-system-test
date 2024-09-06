@@ -295,7 +295,7 @@ class TestEODHPClient(unittest.TestCase):
             },
         ]
 
-        ades_client.check_logs_access(links)
+        ades_client.check_logs_access("https:/test-ades-url/username/jobs/job_id/results", links)
 
         calls = mock_logger.info.call_args_list
 
