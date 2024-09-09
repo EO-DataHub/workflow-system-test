@@ -5,9 +5,13 @@ from json import JSONDecodeError
 import requests
 
 from .cwl_loader import CWLFile
-from .exceptions import (AccessTokenException, ADESTimeOutException,
-                         WorkflowDeploymentException,
-                         WorkflowExecutionException, WorkflowMonitorException)
+from .exceptions import (
+    AccessTokenException,
+    ADESTimeOutException,
+    WorkflowDeploymentException,
+    WorkflowExecutionException,
+    WorkflowMonitorException,
+)
 
 logger = logging.getLogger(__name__)
 
