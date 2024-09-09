@@ -8,8 +8,8 @@ class TestFileCWLLoader(unittest.TestCase):
     def test_init(self):
         cwl_loader = FileCWLLoader("test-filename.cwl", "inputs-filename.json")
 
-        assert cwl_loader.cwl_filename == "test-filename.cwl"
-        assert cwl_loader.inputs_filename == "inputs-filename.json"
+        self.assertEqual("test-filename.cwl", cwl_loader.cwl_filename)
+        self.assertEqual("inputs-filename.json", cwl_loader.inputs_filename)
 
     def test_load_inputs(self):
         cwl_loader = FileCWLLoader(
@@ -18,7 +18,7 @@ class TestFileCWLLoader(unittest.TestCase):
 
         inputs = cwl_loader.load_inputs()
 
-        assert inputs is not None
+        self.assertIsNotNone(inputs)
 
     @patch("system_tests.cwl_loader.time")  # Mock the time module
     def test_load_cwl(self, mock_time):
@@ -30,10 +30,10 @@ class TestFileCWLLoader(unittest.TestCase):
 
         cwl_file = cwl_loader.load_cwl()
 
-        assert cwl_file.cwl_data is not None
-        assert cwl_file.cwl_inputs is not None
-        assert cwl_file.location == "examples/convert-url-app.cwl"
-        assert cwl_file.get_workflow_id() == "test-convert-url--15-00-00"
+        self.assertIsNotNone(cwl_file.cwl_data)
+        self.assertIsNotNone(cwl_file.cwl_inputs)
+        self.assertEqual("examples/convert-url-app.cwl", cwl_file.location)
+        self.assertEqual("test-convert-url--15-00-00", cwl_file.get_workflow_id())
 
 
 class TestGitCWLLoader(unittest.TestCase):
@@ -42,11 +42,11 @@ class TestGitCWLLoader(unittest.TestCase):
             "test-filename.cwl", "inputs-filename.json", "test-repo", "test-branch"
         )
 
-        assert cwl_loader.cwl_filename == "test-filename.cwl"
-        assert cwl_loader.inputs_filename == "inputs-filename.json"
-        assert cwl_loader.repo_name == "test-repo"
-        assert cwl_loader.branch_name == "test-branch"
-        assert cwl_loader._g is not None
+        self.assertEqual("test-filename.cwl", cwl_loader.cwl_filename)
+        self.assertEqual("inputs-filename.json", cwl_loader.inputs_filename)
+        self.assertEqual("test-repo", cwl_loader.repo_name)
+        self.assertEqual("test-branch", cwl_loader.branch_name)
+        self.assertIsNotNone(cwl_loader._g)
 
     @patch("system_tests.cwl_loader.Github")  # Mock the Github class
     def test_load_inputs(self, MockGithub):
@@ -66,7 +66,7 @@ class TestGitCWLLoader(unittest.TestCase):
 
         inputs = cwl_loader.load_inputs()
 
-        assert inputs == {"inputs": "test"}
+        self.assertEqual({"inputs": "test"}, inputs)
 
     @patch("system_tests.cwl_loader.Github")  # Mock the Github class
     @patch("system_tests.cwl_loader.GitCWLLoader.load_inputs")  # Mock the load_inputs method
@@ -88,10 +88,10 @@ class TestGitCWLLoader(unittest.TestCase):
 
         cwl_file = cwl_loader.load_cwl()
 
-        assert cwl_file.cwl_data == {"$graph": [{"id": "test-convert-url"}]}
-        assert cwl_file.cwl_inputs == {"inputs": "test"}
-        assert (
-            cwl_file.location
-            == "https://raw.githubusercontent.com/test-repo/test-branch/test-filename.cwl"
+        self.assertEqual({"$graph": [{"id": "test-convert-url"}]}, cwl_file.cwl_data)
+        self.assertEqual({"inputs": "test"}, cwl_file.cwl_inputs)
+        self.assertEqual(
+            "https://raw.githubusercontent.com/test-repo/test-branch/test-filename.cwl",
+            cwl_file.location,
         )
-        assert cwl_file.get_workflow_id() == "test-convert-url"
+        self.assertEqual("test-convert-url", cwl_file.get_workflow_id())
