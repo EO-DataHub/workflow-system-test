@@ -105,7 +105,9 @@ class TestEODHPClient(unittest.TestCase):
 
     @patch("system_tests.ades.requests")  # Mock the requests module
     @patch("system_tests.ades.logger")  # Mock the logger module
-    @patch("system_tests.ades.ADESClient.check_deployment_status_link")  # Mock the logger module
+    @patch(
+        "system_tests.ades.ADESClient.check_deployment_status_link"
+    )  # Mock the check_deployment_status_link function
     def test_deploy_workflow_url(self, mock_check_link, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
@@ -132,7 +134,47 @@ class TestEODHPClient(unittest.TestCase):
 
     @patch("system_tests.ades.requests")  # Mock the requests module
     @patch("system_tests.ades.logger")  # Mock the logger module
-    @patch("system_tests.ades.ADESClient.check_deployment_status_link")  # Mock the logger module
+    @patch(
+        "system_tests.ades.ADESClient.check_deployment_status_link"
+    )  # Mock the check_deployment_status_link function
+    @patch("system_tests.ades.time.sleep")  # Mock the time.sleep function
+    def test_deploy_workflow_url_too_many_requests(
+        self, mock_time_sleep, mock_check_link, mock_logger, MockRequests
+    ):
+        ades_client = ADESClient(
+            "https://test-ades-url",
+            "username",
+        )
+        api_token = "valid-api-token"
+        ades_client.set_api_token(api_token)
+
+        # Configure mocks
+        mock_time_sleep.return_value = None
+        mock_response_1 = Mock()
+        mock_response_1.status_code = 429
+        mock_response_2 = Mock()
+        mock_response_2.status_code = 201
+
+        MockRequests.post.side_effect = [mock_response_1, mock_response_2]
+
+        raw_cwl = {"$graph": [{"id": "workflow_id"}]}
+
+        cwl_file = CWLFile(raw_cwl, {}, "https://workflow-location/path/to/workflow.cwl")
+
+        ades_client.deploy_workflow(cwl_file)
+
+        calls = mock_logger.info.call_args_list
+
+        assert calls[1][0][0] == "Workflow %s deployed successfully"
+        assert calls[1][0][1] == "workflow_id"
+
+        assert mock_time_sleep.call_count == 1
+
+    @patch("system_tests.ades.requests")  # Mock the requests module
+    @patch("system_tests.ades.logger")  # Mock the logger module
+    @patch(
+        "system_tests.ades.ADESClient.check_deployment_status_link"
+    )  # Mock the check_deployment_status_link function
     def test_deploy_workflow_file(self, mock_check_link, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
