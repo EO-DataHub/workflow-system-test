@@ -35,6 +35,8 @@ class ADESClient:
         final_timeout = start_time + self.boot_timeout
         logger.info(f"Waiting {self.boot_timeout} seconds for ADES to start")
         while time.time() < final_timeout:
+            if final_timeout - time.time() < 10:
+                logger.warning("Monitoring workflow, time left: %s", final_timeout - time.time())
             logger.info("Waiting for ADES to start")
             time.sleep(5)
             response = requests.get(self.url)
@@ -208,6 +210,8 @@ class ADESClient:
         start_time = time.time()
         final_timeout = start_time + self.monitor_timeout
         while time.time() < final_timeout:
+            if final_timeout - time.time() < 10:
+                logger.warning("Monitoring workflow, time left: %s", final_timeout - time.time())
             if response.status_code == 200:
                 if response.json().get("status") == "successful":
                     logger.info("Workflow completed, job id: %s", job_id)
