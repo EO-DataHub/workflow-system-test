@@ -86,34 +86,54 @@ class ADESClient:
                     logger.error("Deployment status link is incorrect")
                     raise Exception("Deployment status link is incorrect")
 
+    def call_deploy_endpoint_url(self, location: str):
+        response = requests.post(
+            f"{self.user_url}/ogc-api/processes",
+            headers={
+                "Authorization": f"Bearer {self.api_token}",
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+            json={
+                "executionUnit": {"href": location, "type": "application/cwl"},
+            },
+        )
+        return response
+
+    def call_deploy_endpoint_file(self, location: str):
+        with open(location, "r") as workflow_file:
+            workflow_file = workflow_file.read()
+        response = requests.post(
+            f"{self.user_url}/ogc-api/processes",
+            headers={
+                "Authorization": f"Bearer {self.api_token}",
+                "Accept": "application/json",
+                "Content-Type": "application/cwl+yaml",
+            },
+            data=workflow_file,
+        )
+        return response
+
     def deploy_workflow(self, cwl_file: CWLFile):
         """Deploy the workflow to the ADES"""
         if cwl_file.location.startswith("https://"):
             logger.info("Deploying workflow from URL")
-            response = requests.post(
-                f"{self.user_url}/ogc-api/processes",
-                headers={
-                    "Authorization": f"Bearer {self.api_token}",
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "executionUnit": {"href": cwl_file.location, "type": "application/cwl"},
-                },
-            )
+            response = self.call_deploy_endpoint_url(cwl_file.location)
+            if response.status_code == 429:
+                logger.warning(
+                    "Too many requests, waiting to try again.",
+                )
+                time.sleep(5)
+                response = self.call_deploy_endpoint_url(cwl_file.location)
         else:
             logger.info("Deploying workflow from local file")
-            with open(cwl_file.location, "r") as workflow_file:
-                workflow_file = workflow_file.read()
-            response = requests.post(
-                f"{self.user_url}/ogc-api/processes",
-                headers={
-                    "Authorization": f"Bearer {self.api_token}",
-                    "Accept": "application/json",
-                    "Content-Type": "application/cwl+yaml",
-                },
-                data=workflow_file,
-            )
+            response = self.call_deploy_endpoint_file(cwl_file.location)
+            if response.status_code == 429:
+                logger.warning(
+                    "Too many requests, waiting to try again.",
+                )
+                time.sleep(5)
+                response = self.call_deploy_endpoint_file(cwl_file.location)
         if response.status_code == 201:
             logger.info("Workflow %s deployed successfully", cwl_file.get_workflow_id())
             # Check response header Location is correct
@@ -121,7 +141,6 @@ class ADESClient:
         elif response.status_code == 409:
             logger.warning(
                 "Workflow %s already deployed, it should have been deleted",
-                cwl_file.get_workflow_id(),
             )
         else:
             logger.error(
