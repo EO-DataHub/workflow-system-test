@@ -77,7 +77,9 @@ pycparser==2.22
 pygithub==2.4.0
     # via workflow-system-test (pyproject.toml)
 pyjwt[crypto]==2.9.0
-    # via pygithub
+    # via
+    #   pygithub
+    #   pyjwt
 pynacl==1.5.0
     # via pygithub
 pyproject-hooks==1.0.0
