@@ -5,6 +5,8 @@ from json import JSONDecodeError
 import botocore
 import requests
 
+from .exceptions import AccessTokenException, WorkflowResultsException
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,7 +54,7 @@ class EODHPClient:
             except JSONDecodeError:
                 error_response = response.text
             logger.error("Failed to get offline refresh token: %s", error_response)
-            raise Exception("Failed to get offline refresh token")
+            raise AccessTokenException("Failed to get offline refresh token")
 
     def _get_access_token(self, debug: bool = False) -> str:
         """Get the access token from the refresh token"""
@@ -77,7 +79,7 @@ class EODHPClient:
             except JSONDecodeError:
                 error_response = response.text
             logger.error("Failed to get user access token: %s", error_response)
-            raise Exception("Failed to get user access token")
+            raise AccessTokenException("Failed to get user access token")
 
     def request_api_token(self, debug):
         """Request the API token"""
@@ -165,7 +167,7 @@ class EODHPClient:
                 logger.error(collection_response.json())
             except JSONDecodeError:
                 logger.error(collection_response.text)
-            raise Exception("Failed to get workflow results")
+            raise WorkflowResultsException("Failed to get workflow results")
         try:
             collection = collection_response.json()
         except JSONDecodeError as err:
@@ -205,7 +207,7 @@ class EODHPClient:
                             logger.error(response.json())
                         except JSONDecodeError:
                             logger.error(response.text)
-                        raise Exception("Failed to download asset")
+                        raise WorkflowResultsException("Failed to download asset")
 
         logger.info("S3 access token checked successfully")
 
