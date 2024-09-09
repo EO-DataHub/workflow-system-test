@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import time
 
 import boto3
@@ -139,18 +138,13 @@ def workflow(
         # Check token allows outputs to be downloaded
         eodhp_client.check_s3_access_token(results_link, debug)
         ## Final result
-        success = True
         logger.info("Test is successful")
-    except Exception as e:
+    except Exception:
         logger.error("Workflow system test failed")
-        logger.error(e)
-        success = False
+        raise
     finally:
         # Undeploy test workflow
         ades_client.undeploy_workflow(cwl_file_id)
-        # Raise error is necessary
-        if not success:
-            sys.exit(1)
 
 
 if __name__ == "__main__":
