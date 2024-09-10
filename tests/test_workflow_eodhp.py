@@ -16,13 +16,13 @@ class TestEODHPClient(unittest.TestCase):
             "client_secret",
         )
 
-        assert eodhp_client.auth_url == "https://test-auth-url"
-        assert eodhp_client.rc_url == "https://test-rc-url"
-        assert eodhp_client.username == "username"
-        assert eodhp_client.password == "password"
-        assert eodhp_client.client_id == "client_id"
-        assert eodhp_client.client_secret == "client_secret"
-        assert eodhp_client.api_token is None
+        self.assertEqual("https://test-auth-url", eodhp_client.auth_url)
+        self.assertEqual("https://test-rc-url", eodhp_client.rc_url)
+        self.assertEqual("username", eodhp_client.username)
+        self.assertEqual("password", eodhp_client.password)
+        self.assertEqual("client_id", eodhp_client.client_id)
+        self.assertEqual("client_secret", eodhp_client.client_secret)
+        self.assertIsNone(eodhp_client.api_token)
 
     @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_refresh_token(self, MockRequests):
@@ -43,7 +43,7 @@ class TestEODHPClient(unittest.TestCase):
 
         refresh_token = eodhp_client._get_refresh_token()
 
-        assert refresh_token == "test_refresh_token"
+        self.assertEqual("test_refresh_token", refresh_token)
 
     @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_access_token(self, MockRequests):
@@ -64,12 +64,11 @@ class TestEODHPClient(unittest.TestCase):
         )
 
         # Check refresh token set correctly
-
-        assert eodhp_client.refresh_token == "test_refresh_token"
+        self.assertEqual("test_refresh_token", eodhp_client.refresh_token)
 
         access_token = eodhp_client._get_access_token()
 
-        assert access_token == "test_access_token"
+        self.assertEqual("test_access_token", access_token)
 
     def test_get_item_from_s3(self):
         eodhp_client = EODHPClient(
@@ -96,10 +95,13 @@ class TestEODHPClient(unittest.TestCase):
 
         item = eodhp_client.get_item_from_s3(collection)
 
-        assert item == {
-            "id": "test_item",
-            "links": [{"rel": "self", "href": "s3://bucket_name/path/item_link"}],
-        }
+        self.assertEqual(
+            {
+                "id": "test_item",
+                "links": [{"rel": "self", "href": "s3://bucket_name/path/item_link"}],
+            },
+            item,
+        )
 
     @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_item_from_rc(self, MockRequests):
@@ -138,10 +140,13 @@ class TestEODHPClient(unittest.TestCase):
 
         item = eodhp_client.get_item_from_rc(collection)
 
-        assert item == {
-            "id": "test_item",
-            "links": [{"rel": "self", "href": "s3://bucket_name/path/item_link1"}],
-        }
+        self.assertEqual(
+            {
+                "id": "test_item",
+                "links": [{"rel": "self", "href": "s3://bucket_name/path/item_link1"}],
+            },
+            item,
+        )
 
     @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_result_collection(self, MockRequests):
@@ -169,10 +174,13 @@ class TestEODHPClient(unittest.TestCase):
 
         collection = eodhp_client.get_result_collection(results_link)
 
-        assert collection == {
-            "id": "test_collection_id",
-            "links": [{"rel": "item", "href": "s3://test-bucket/test-key"}],
-        }
+        self.assertEqual(
+            {
+                "id": "test_collection_id",
+                "links": [{"rel": "item", "href": "s3://test-bucket/test-key"}],
+            },
+            collection,
+        )
 
     @patch("system_tests.eodhp.requests")  # Mock the requests module
     @patch("system_tests.eodhp.EODHPClient.get_result_collection")  # Mock the load_inputs method
@@ -226,12 +234,12 @@ class TestEODHPClient(unittest.TestCase):
 
         calls = mock_logger.info.call_args_list
 
-        assert calls[1][0][0] == "Asset: %s available for download from: %s"
-        assert calls[1][0][1] == "asset_1"
-        assert calls[1][0][2] == "https://data-access/path/asset_link1"
-        assert calls[2][0][0] == "Asset: %s available for download from: %s"
-        assert calls[2][0][1] == "asset_2"
-        assert calls[2][0][2] == "https://data-access/path/asset_link2"
+        self.assertEqual("Asset: %s available for download from: %s", calls[1][0][0])
+        self.assertEqual("asset_1", calls[1][0][1])
+        self.assertEqual("https://data-access/path/asset_link1", calls[1][0][2])
+        self.assertEqual("Asset: %s available for download from: %s", calls[2][0][0])
+        self.assertEqual("asset_2", calls[2][0][1])
+        self.assertEqual("https://data-access/path/asset_link2", calls[2][0][2])
 
     @patch("system_tests.eodhp.EODHPClient.get_result_collection")  # Mock the load_inputs method
     @patch("system_tests.eodhp.logger")  # Mock the logger module
@@ -267,9 +275,9 @@ class TestEODHPClient(unittest.TestCase):
 
         calls = mock_logger.info.call_args_list
 
-        assert calls[1][0][0] == "S3 key found: %s"
-        assert calls[1][0][1] == "item"
-        assert calls[2][0][0] == "S3 key found: %s"
-        assert calls[2][0][1] == "self"
-        assert calls[3][0][0] == "S3 key found: %s"
-        assert calls[3][0][1] == "root"
+        self.assertEqual("S3 key found: %s", calls[1][0][0])
+        self.assertEqual("item", calls[1][0][1])
+        self.assertEqual("S3 key found: %s", calls[2][0][0])
+        self.assertEqual("self", calls[2][0][1])
+        self.assertEqual("S3 key found: %s", calls[3][0][0])
+        self.assertEqual("root", calls[3][0][1])

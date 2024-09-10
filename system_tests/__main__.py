@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)  # Add this line to define the logger
 
 @click.group()
 def cli():
-    click.echo("Running test")
+    pass
 
 
 @cli.command()
@@ -137,15 +137,14 @@ def workflow(
 
         # Check token allows outputs to be downloaded
         eodhp_client.check_s3_access_token(results_link, debug)
-    except Exception as e:
+        ## Final result
+        logger.info("Test is successful")
+    except Exception:
         logger.error("Workflow system test failed")
-        logger.error(e)
+        raise
     finally:
         # Undeploy test workflow
         ades_client.undeploy_workflow(cwl_file_id)
-
-    ## Final result
-    logger.info("Test is successful")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,13 @@ from json import JSONDecodeError
 import requests
 
 from .cwl_loader import CWLFile
+from .exceptions import (
+    AccessTokenException,
+    ADESTimeOutException,
+    WorkflowDeploymentException,
+    WorkflowExecutionException,
+    WorkflowMonitorException,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +51,7 @@ class ADESClient:
                 logger.info("ADES is running")
                 return
         logger.error("ADES start up reached timeout, ending test")
-        raise Exception("ADES start up reached timeout")
+        raise ADESTimeOutException("ADES start up reached timeout")
 
     def check_api_token(self):
         """Check the API token is valid"""
@@ -61,7 +68,7 @@ class ADESClient:
             except JSONDecodeError:
                 error_response = response.text
             logger.error("Refresh token failed: %s", error_response)
-            raise Exception("Refresh token failed")
+            raise AccessTokenException("Refresh token failed")
 
     def undeploy_workflow(self, workflow_id: str):
         """Undeploy the workflow if it is already deployed"""
@@ -86,7 +93,7 @@ class ADESClient:
                     != f"{self.user_url}/ogc-api/processes/{cwl_file.get_workflow_id()}"
                 ):
                     logger.error("Deployment status link is incorrect")
-                    raise Exception("Deployment status link is incorrect")
+                    raise WorkflowDeploymentException("Deployment status link is incorrect")
 
     def call_deploy_endpoint_url(self, location: str):
         response = requests.post(
@@ -148,7 +155,7 @@ class ADESClient:
             logger.error(
                 "Failed to deploy workflow %s : %s", cwl_file.get_workflow_id(), response.text
             )
-            raise Exception("Failed to deploy workflow")
+            raise WorkflowDeploymentException("Failed to deploy workflow")
 
     def check_deployment_status(self, workflow_id: str):
         """Check the deployment status of the workflow"""
@@ -164,17 +171,17 @@ class ADESClient:
                 if link["title"] == "Execute End Point":
                     if link["href"] != f"{self.user_url}/ogc-api/processes/{workflow_id}/execution":
                         logger.error("Deployment execute link is incorrect")
-                        raise Exception("Deployment execute link is incorrect")
+                        raise WorkflowDeploymentException("Deployment execute link is incorrect")
         elif response.status_code == 404:
             logger.error("Workflow %s not deployed", workflow_id)
-            raise Exception("Failed to deploy workflow")
+            raise WorkflowDeploymentException("Failed to deploy workflow")
         else:
             logger.error(
                 "Failed to check deployment status for workflow %s : %s",
                 workflow_id,
                 response.json(),
             )
-            raise Exception("Failed to check deployment status")
+            raise WorkflowDeploymentException("Failed to check deployment status")
 
     def execute_workflow(self, workflow: CWLFile) -> str:
         """Execute the workflow"""
@@ -197,14 +204,15 @@ class ADESClient:
             logger.info("Workflow: %s executed under job: %s", workflow.get_workflow_id(), job_id)
         else:
             logger.error("Failed to execute workflow: %s", response.json())
-            raise Exception("Failed to execute workflow")
+            raise WorkflowExecutionException("Failed to execute workflow")
         return job_id
 
     def monitor_workflow(self, job_id: str) -> str:
         """Monitor the workflow execution and wait for results"""
         logger.info("Monitoring workflow")
+        status_url = f"{self.user_url}/ogc-api/jobs/{job_id}"
         response = requests.get(
-            f"{self.user_url}/ogc-api/jobs/{job_id}",
+            status_url,
             headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
         )
         start_time = time.time()
@@ -216,16 +224,18 @@ class ADESClient:
                 if response.json().get("status") == "successful":
                     logger.info("Workflow completed, job id: %s", job_id)
                     links = response.json().get("links")
+                    self.check_logs_access(status_url, links)
+                    results_link = ""
                     for link in links:
                         if link.get("title") == "Result location":
                             results_link = link.get("href")
                             return results_link
                     logger.error("Failed to find results link")
-                    raise Exception("Failed to find results link")
+                    raise WorkflowMonitorException("Failed to find results link")
                 elif response.json().get("status") == "failed":
                     logger.error("Workflow failed, job id: %s", job_id)
                     logger.error(response.json().get("message"))
-                    raise Exception("Workflow failed during execution")
+                    raise WorkflowMonitorException("Workflow failed during execution")
                 else:
                     logger.info(
                         "Workflow still running, message: %s", response.json().get("message")
@@ -243,7 +253,44 @@ class ADESClient:
                     logger.error("Failed to monitor job %s: %s", job_id, response.json())
                 except JSONDecodeError:
                     logger.error("Failed to monitor job %s: %s", job_id, response.text)
-                raise Exception("Failed to monitor job")
+                raise WorkflowMonitorException("Failed to monitor job")
 
         logger.error("Workflow timed out, job id: %s", job_id)
-        raise Exception("Workflow timed out")
+        raise WorkflowMonitorException("Workflow timed out")
+
+    def check_logs_access(self, status_url: str, links: list):
+        """Check the logs are accessible"""
+        logger.info("Checking logs are accessible")
+        logs_link = ""
+        for link in links:
+            if link.get("title") == "Tool log node_stage_out.log":
+                logs_link = link.get("href")
+        start_time = time.time()
+        final_timeout = start_time + 60  # Give 60 seconds for logs to be available
+        while not logs_link and time.time() < final_timeout:
+            logger.info("Waiting for logs to become available")
+            response = requests.get(
+                status_url,
+                headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
+            )
+            links = response.json().get("links")
+            for link in links:
+                if link.get("title") == "Tool log node_stage_out.log":
+                    logs_link = link.get("href")
+                    break
+            time.sleep(5)
+        if not logs_link:
+            logger.warning("Failed to find logs link")
+            return
+        response = requests.get(
+            logs_link,
+            headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
+        )
+        if response.status_code == 200:
+            logger.info("Logs are accessible")
+        else:
+            try:
+                logger.error("Failed to get logs at url: %s : %s", logs_link, response.json())
+            except JSONDecodeError:
+                logger.error("Failed to get logs at url: %s : %s", logs_link, response.text)
+            raise WorkflowMonitorException("Failed to access logs")
