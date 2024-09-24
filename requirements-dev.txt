@@ -29,7 +29,7 @@ click==8.1.7
     #   black
     #   pip-tools
     #   workflow-system-test (pyproject.toml)
-cryptography==43.0.0
+cryptography==43.0.1
     # via pyjwt
 deprecated==1.2.14
     # via pygithub
@@ -77,9 +77,7 @@ pycparser==2.22
 pygithub==2.4.0
     # via workflow-system-test (pyproject.toml)
 pyjwt[crypto]==2.9.0
-    # via
-    #   pygithub
-    #   pyjwt
+    # via pygithub
 pynacl==1.5.0
     # via pygithub
 pyproject-hooks==1.0.0
