@@ -67,6 +67,9 @@ def workflow(
     username = os.getenv("USERNAME", None)
     password = os.getenv("PASSWORD", None)
 
+    # Construct workspace for username
+    user_workspace = username.replace("-", "_")
+
     # API credentials
     client_id = os.getenv("CLIENT_ID", None)
     client_secret = os.getenv("CLIENT_SECRET", None)
@@ -87,7 +90,7 @@ def workflow(
     cwl_file = cwl_loader.load_cwl()
     cwl_file_id = cwl_file.get_workflow_id()
 
-    ades_client = ADESClient(workflow_api_url, username, boot_timeout, monitor_timeout)
+    ades_client = ADESClient(workflow_api_url, user_workspace, boot_timeout, monitor_timeout)
     eodhp_client = EODHPClient(
         auth_token_api_url, resource_catalogue_api_url, username, password, client_id, client_secret
     )
