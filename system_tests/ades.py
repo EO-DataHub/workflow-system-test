@@ -23,6 +23,8 @@ class ADESClient:
         self.url = url
         self.username = username
         self.user_url = f"{self.url}/{self.username}"
+        # for now just use the same username for the executing url
+        self.executing_url = f"{self.url}/{self.username}/{self.username}"
         self.boot_timeout = boot_timeout
         self.monitor_timeout = monitor_timeout
         self.api_token = None
@@ -187,7 +189,6 @@ class ADESClient:
         """Execute the workflow"""
         logger.info("Preparing to execute workflow")
         inputs = workflow.get_workflow_inputs()
-        inputs["inputs"].update({"workspace": self.username})
         logger.info("Executing workflow")
         response = requests.post(
             f"{self.user_url}/ogc-api/processes/{workflow.get_workflow_id()}/execution",
