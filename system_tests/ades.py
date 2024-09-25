@@ -191,7 +191,7 @@ class ADESClient:
         inputs = workflow.get_workflow_inputs()
         logger.info("Executing workflow")
         response = requests.post(
-            f"{self.user_url}/ogc-api/processes/{workflow.get_workflow_id()}/execution",
+            f"{self.executing_url}/ogc-api/processes/{workflow.get_workflow_id()}/execution",
             headers={
                 "Authorization": f"Bearer {self.api_token}",
                 "Accept": "application/json",
@@ -204,7 +204,10 @@ class ADESClient:
             job_id = response.json().get("jobID")
             logger.info("Workflow: %s executed under job: %s", workflow.get_workflow_id(), job_id)
         else:
-            logger.error("Failed to execute workflow: %s", response.json())
+            try:
+                logger.error("Failed to execute workflow: %s", response.json())
+            except JSONDecodeError:
+                logger.error("Failed to execute workflow: %s", response.text)
             raise WorkflowExecutionException("Failed to execute workflow")
         return job_id
 
