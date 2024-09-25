@@ -149,8 +149,14 @@ class EODHPClient:
                 logger.error("Failed to get results from Resource Catalogue")
                 raise err
         items = items_response.json().get("features")
-        # Return first item
-        return items[0]
+        if items:
+            # Return first item
+            return items[0]
+        else:
+            logger.error("No items found in %s", items_url)
+            raise WorkflowResultsException("No items found in Resource Catalog")
+        
+        
 
     def get_result_collection(self, results_link: str):
         """Get the result collection"""
