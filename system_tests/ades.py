@@ -200,6 +200,21 @@ class ADESClient:
             },
             json=inputs,
         )
+        if response.status_code == 429:
+                logger.warning(
+                    "Too many requests, waiting to try again.",
+                )
+                time.sleep(5)
+                response = requests.post(
+                    f"{self.executing_url}/ogc-api/processes/{workflow.get_workflow_id()}/execution",
+                    headers={
+                        "Authorization": f"Bearer {self.api_token}",
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                        "prefer": "respond-async",
+                    },
+                    json=inputs,
+                )
         if response.status_code == 201:
             job_id = response.json().get("jobID")
             logger.info("Workflow: %s executed under job: %s", workflow.get_workflow_id(), job_id)
