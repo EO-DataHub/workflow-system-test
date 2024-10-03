@@ -97,6 +97,7 @@ class EODHPClient:
     def get_item_from_s3(self, collection: dict) -> dict:
         """Get the first item from S3 (DEBUG ONLY)"""
         # Identify item
+        logger.info("Identifying item from S3")
         links = collection.get("links")
         for link in links:
             if link.get("rel") == "item":
@@ -122,14 +123,29 @@ class EODHPClient:
                         else:
                             logger.error("Failed to find key %s in bucket", key)
                             raise err
+                elif href.startswith("https://"):
+                    # Load item from URL
+                    item_response = requests.get(
+                        href, headers={"Authorization": f"Bearer {self.api_token}"}
+                    )
+                    if item_response.status_code == 200:
+                        logger.info("Item found at %s", href)
+                        return item_response.json()
+                    else:
+                        logger.error("Failed to get item from %s", href)
+                        try:
+                            logger.error(item_response.json())
+                        except JSONDecodeError:
+                            logger.error(item_response.text)
+                        raise WorkflowResultsException("Failed to get workflow results")
 
     def get_item_from_rc(self, collection: dict, debug: bool = None) -> dict:
         """Get the first item from the Resource Catalogue"""
         logger.info("Identifying item from Resource Catalogue")
 
         id = collection.get("id")
-        catalog_id = f"cat_{id}"
-        collection_id = f"col_{id}"
+        catalog_id = id.replace("col_", "cat_")
+        collection_id = id
 
         # Get resulting collection from resource catalogue
         items_url = (
