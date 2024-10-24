@@ -144,10 +144,11 @@ class EODHPClient:
             logger.error("Failed to get results from %s", items_url)
             try:
                 logger.error(items_response.json())
+                raise WorkflowResultsException("Failed to get workflow results")
             except JSONDecodeError as err:
                 logger.error(items_response.text)
                 logger.error("Failed to get results from Resource Catalogue")
-                raise err
+                raise WorkflowResultsException("Failed to get workflow results") from err
         items = items_response.json().get("features")
         # Return first item
         return items[0]
