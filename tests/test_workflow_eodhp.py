@@ -118,7 +118,7 @@ class TestEODHPClient(unittest.TestCase):
 
         # Configure mocks
         mock_response = Mock()
-        mock_response.ok = True
+        mock_response.status_code = 200
         mock_response.json.return_value = {
             "features": [
                 {
