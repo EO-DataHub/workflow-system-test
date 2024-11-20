@@ -1,11 +1,12 @@
 import json
 import logging
+import time
 from json import JSONDecodeError
 
 import botocore
 import requests
 
-from .exceptions import AccessTokenException, WorkflowResultsException
+from .exceptions import WorkflowResultsException
 
 logger = logging.getLogger(__name__)
 
@@ -13,82 +14,13 @@ logger = logging.getLogger(__name__)
 class EODHPClient:
     def __init__(
         self,
-        auth_url: str,
         rc_url: str,
         username: str,
-        password: str,
-        client_id: str,
-        client_secret: str,
-        refresh_token=None,
         api_token=None,
     ):
-        self.auth_url = auth_url
         self.rc_url = rc_url
         self.username = username
-        self.password = password
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self.refresh_token = refresh_token if refresh_token else None
-        self.api_token = api_token if api_token else None
-
-    def _get_refresh_token(self, debug: bool = False) -> str:
-        """Get the refresh token"""
-        response = requests.post(
-            self.auth_url,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            data={
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "username": self.username,
-                "password": self.password,
-                "grant_type": "password",
-            },
-        )
-        if response.ok:
-            if debug:
-                logger.debug("Refresh token : %s", response.json()["refresh_token"])
-            return response.json()["refresh_token"]
-        else:
-            try:
-                error_response = response.json()
-            except JSONDecodeError:
-                error_response = response.text
-            logger.error("Failed to get offline refresh token: %s", error_response)
-            raise AccessTokenException("Failed to get offline refresh token")
-
-    def _get_access_token(self, debug: bool = False) -> str:
-        """Get the access token from the refresh token"""
-        response = requests.post(
-            self.auth_url,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            data={
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "refresh_token": self.refresh_token,
-                "grant_type": "refresh_token",
-                "scope": "offline_access",
-            },
-        )
-        if response.ok:
-            if debug:
-                logger.debug("Access token : %s", response.json()["access_token"])
-            return response.json()["access_token"]
-        else:
-            try:
-                error_response = response.json()
-            except JSONDecodeError:
-                error_response = response.text
-            logger.error("Failed to get user access token: %s", error_response)
-            raise AccessTokenException("Failed to get user access token")
-
-    def request_api_token(self, debug):
-        """Request the API token"""
-        logger.info("Requesting API token")
-        self.refresh_token = self._get_refresh_token(debug)
-        api_token = self._get_access_token(debug)
         self.api_token = api_token
-        logger.info("API token received")
-        return api_token
 
     def set_client(self, client):
         """Create a boto3 client"""
@@ -128,8 +60,9 @@ class EODHPClient:
         logger.info("Identifying item from Resource Catalogue")
 
         id = collection.get("id")
-        catalog_id = f"cat_{id}"
-        collection_id = f"col_{id}"
+        job_id = id.replace("col_", "", 1)
+        catalog_id = f"cat_{job_id}"
+        collection_id = f"col_{job_id}"
 
         # Get resulting collection from resource catalogue
         items_url = (
@@ -140,6 +73,14 @@ class EODHPClient:
         items_response = requests.get(
             items_url, headers={"Authorization": f"Bearer {self.api_token}"}
         )
+        count = 0
+        while items_response.status_code == 404 and count < 3:
+            logger.info("Item not found, retrying in 30 seconds")
+            time.sleep(30)
+            items_response = requests.get(
+                items_url, headers={"Authorization": f"Bearer {self.api_token}"}
+            )
+            count += 1
         if items_response.status_code != 200:
             logger.error("Failed to get results from %s", items_url)
             try:
