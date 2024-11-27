@@ -35,7 +35,6 @@ def cli():
 
 
 @cli.command()
-@click.argument("auth-token-api-url")
 @click.argument("workflow-api-url")
 @click.argument("resource-catalogue-api-url")
 @click.argument("workflow-file-name")
@@ -46,7 +45,6 @@ def cli():
 @click.option("--boot-timeout", default=420, help="Boot timeout in seconds")
 @click.option("--monitor-timeout", default=270, help="Monitor timeout in seconds")
 def workflow(
-    auth_token_api_url,
     workflow_api_url,
     resource_catalogue_api_url,
     workflow_file_name,
@@ -62,14 +60,6 @@ def workflow(
     # Set DEBUG logging
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
-
-    # Login details
-    username = os.getenv("USERNAME", None)
-    password = os.getenv("PASSWORD", None)
-
-    # API credentials
-    client_id = os.getenv("CLIENT_ID", None)
-    client_secret = os.getenv("CLIENT_SECRET", None)
 
     # Initialise Github client
     if github_repo:
@@ -87,19 +77,22 @@ def workflow(
     cwl_file = cwl_loader.load_cwl()
     cwl_file_id = cwl_file.get_workflow_id()
 
-    ades_client = ADESClient(workflow_api_url, username, boot_timeout, monitor_timeout)
-    eodhp_client = EODHPClient(
-        auth_token_api_url, resource_catalogue_api_url, username, password, client_id, client_secret
+    username = os.getenv("USERNAME")
+    api_token = os.getenv("API_TOKEN")
+
+    ades_client = ADESClient(
+        workflow_api_url, username, boot_timeout, monitor_timeout, api_token=api_token
     )
+    eodhp_client = EODHPClient(resource_catalogue_api_url, username, api_token=api_token)
 
     try:
         # Check ades is running
         ades_client.check_status()
         # Generate API token
-        api_token = eodhp_client.request_api_token(debug)
+        # api_token = eodhp_client.request_api_token(debug)
 
         # Set api_token for ADESClient
-        ades_client.set_api_token(api_token)
+        # ades_client.set_api_token(api_token)
 
         # Test API token access
         ades_client.check_api_token()

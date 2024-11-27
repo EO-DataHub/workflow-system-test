@@ -7,80 +7,14 @@ from system_tests.eodhp import EODHPClient
 
 class TestEODHPClient(unittest.TestCase):
     def test_init(self):
-        eodhp_client = EODHPClient(
-            "https://test-auth-url",
-            "https://test-rc-url",
-            "username",
-            "password",
-            "client_id",
-            "client_secret",
-        )
+        eodhp_client = EODHPClient("https://test-rc-url", "username", "api-token")
 
-        self.assertEqual("https://test-auth-url", eodhp_client.auth_url)
         self.assertEqual("https://test-rc-url", eodhp_client.rc_url)
         self.assertEqual("username", eodhp_client.username)
-        self.assertEqual("password", eodhp_client.password)
-        self.assertEqual("client_id", eodhp_client.client_id)
-        self.assertEqual("client_secret", eodhp_client.client_secret)
-        self.assertIsNone(eodhp_client.api_token)
-
-    @patch("system_tests.eodhp.requests")  # Mock the requests module
-    def test_get_refresh_token(self, MockRequests):
-        # Configure mocks
-        mock_response = Mock()
-        mock_response.ok = True
-        mock_response.json.return_value = {"refresh_token": "test_refresh_token"}
-        MockRequests.post.return_value = mock_response
-
-        eodhp_client = EODHPClient(
-            "https://test-auth-url",
-            "https://test-rc-url",
-            "username",
-            "password",
-            "client_id",
-            "client_secret",
-        )
-
-        refresh_token = eodhp_client._get_refresh_token()
-
-        self.assertEqual("test_refresh_token", refresh_token)
-
-    @patch("system_tests.eodhp.requests")  # Mock the requests module
-    def test_get_access_token(self, MockRequests):
-        # Configure mocks
-        mock_response = Mock()
-        mock_response.ok = True
-        mock_response.json.return_value = {"access_token": "test_access_token"}
-        MockRequests.post.return_value = mock_response
-
-        eodhp_client = EODHPClient(
-            "https://test-auth-url",
-            "https://test-rc-url",
-            "username",
-            "password",
-            "client_id",
-            "client_secret",
-            "test_refresh_token",
-        )
-
-        # Check refresh token set correctly
-        self.assertEqual("test_refresh_token", eodhp_client.refresh_token)
-
-        access_token = eodhp_client._get_access_token()
-
-        self.assertEqual("test_access_token", access_token)
+        self.assertEqual("api-token", eodhp_client.api_token)
 
     def test_get_item_from_s3(self):
-        eodhp_client = EODHPClient(
-            "https://test-auth-url",
-            "https://test-rc-url",
-            "username",
-            "password",
-            "client_id",
-            "client_secret",
-            "test_refresh_token",
-            "test_access_token",
-        )
+        eodhp_client = EODHPClient("https://test-rc-url", "username", "api-token")
 
         collection = {
             "id": "test_collection_id",
@@ -105,16 +39,7 @@ class TestEODHPClient(unittest.TestCase):
 
     @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_item_from_rc(self, MockRequests):
-        eodhp_client = EODHPClient(
-            "https://test-auth-url",
-            "https://test-rc-url",
-            "username",
-            "password",
-            "client_id",
-            "client_secret",
-            "test_refresh_token",
-            "test_access_token",
-        )
+        eodhp_client = EODHPClient("https://test-rc-url", "username", "api-token")
 
         # Configure mocks
         mock_response = Mock()
@@ -150,16 +75,7 @@ class TestEODHPClient(unittest.TestCase):
 
     @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_result_collection(self, MockRequests):
-        eodhp_client = EODHPClient(
-            "https://test-auth-url",
-            "https://test-rc-url",
-            "username",
-            "password",
-            "client_id",
-            "client_secret",
-            "test_refresh_token",
-            "test_access_token",
-        )
+        eodhp_client = EODHPClient("https://test-rc-url", "username", "api-token")
 
         # Configure mocks
         mock_response = Mock()
@@ -189,16 +105,7 @@ class TestEODHPClient(unittest.TestCase):
     def test_check_s3_access_token(
         self, mock_logger, mock_get_item_from_rc, mock_get_result_collection, MockRequests
     ):
-        eodhp_client = EODHPClient(
-            "https://test-auth-url",
-            "https://test-rc-url",
-            "username",
-            "password",
-            "client_id",
-            "client_secret",
-            "test_refresh_token",
-            "test_access_token",
-        )
+        eodhp_client = EODHPClient("https://test-rc-url", "username", "api-token")
 
         # Configure mocks
         mock_response = Mock()
@@ -244,16 +151,7 @@ class TestEODHPClient(unittest.TestCase):
     @patch("system_tests.eodhp.EODHPClient.get_result_collection")  # Mock the load_inputs method
     @patch("system_tests.eodhp.logger")  # Mock the logger module
     def test_check_outputs_in_s3(self, mock_logger, mock_get_result_collection):
-        eodhp_client = EODHPClient(
-            "https://test-auth-url",
-            "https://test-rc-url",
-            "username",
-            "password",
-            "client_id",
-            "client_secret",
-            "test_refresh_token",
-            "test_access_token",
-        )
+        eodhp_client = EODHPClient("https://test-rc-url", "username", "api-token")
 
         mock_get_result_collection.return_value = {
             "id": "test_collection_id",

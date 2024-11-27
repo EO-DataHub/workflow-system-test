@@ -18,14 +18,19 @@ logger = logging.getLogger(__name__)
 
 class ADESClient:
     def __init__(
-        self, url: str, username: str, boot_timeout: int = 270, monitor_timeout: int = 270
+        self,
+        url: str,
+        username: str,
+        boot_timeout: int = 270,
+        monitor_timeout: int = 270,
+        api_token: str = None,
     ):
         self.url = url
         self.username = username
         self.user_url = f"{self.url}/{self.username}"
         self.boot_timeout = boot_timeout
         self.monitor_timeout = monitor_timeout
-        self.api_token = None
+        self.api_token = api_token
 
     def set_api_token(self, api_token: str):
         self.api_token = api_token
@@ -126,7 +131,7 @@ class ADESClient:
     def deploy_workflow(self, cwl_file: CWLFile):
         """Deploy the workflow to the ADES"""
         if cwl_file.location.startswith("https://"):
-            logger.info("Deploying workflow from URL")
+            logger.info("Deploying workflow from URL: %s", cwl_file.location)
             response = self.call_deploy_endpoint_url(cwl_file.location)
             if response.status_code == 429:
                 logger.warning(
@@ -150,6 +155,7 @@ class ADESClient:
         elif response.status_code == 409:
             logger.warning(
                 "Workflow %s already deployed, it should have been deleted",
+                cwl_file.get_workflow_id(),
             )
         else:
             logger.error(
