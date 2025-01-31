@@ -129,7 +129,7 @@ def workflow(
             eodhp_client.check_outputs_in_s3(results_link)
 
         # Check token allows outputs to be downloaded
-        eodhp_client.check_s3_access_token(results_link, debug)
+        eodhp_client.check_s3_access_token(cwl_file_id, results_link, debug)
         ## Final result
         logger.info("Test is successful")
     except Exception:
