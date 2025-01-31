@@ -66,8 +66,8 @@ class EODHPClient:
 
         # Get resulting collection from resource catalogue
         items_url = (
-            f"{self.rc_url}/catalogs/user-datasets/{self.username}/processing-results/"
-            f"{catalog_id}/collections/{collection_id}/items"
+            f"{self.rc_url}/catalogs/user-datasets/catalogs/{self.username}/catalogs/processing-results/"
+            f"catalogs/{catalog_id}/collections/{collection_id}/items"
         )
         logger.info(f"Searching for item in {items_url}")
         items_response = requests.get(
