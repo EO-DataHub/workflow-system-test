@@ -59,6 +59,19 @@ class EODHPClient:
         """Get the first item from the Resource Catalogue"""
         logger.info("Identifying item from Resource Catalogue")
 
+        # Get collection_url
+        links = collection.get("links", [])
+
+        # TODO: extract catalog path from the root catalog url
+        if links:
+            for link in links:
+                if link.get("rel") == "root":
+                    root_url = link.get("href")
+                    logger.info("Found root link: %s", root_url)
+                    break
+        else:
+            raise WorkflowResultsException("No links found in collection")
+
         id = collection.get("id")
         job_id = id.replace("col_", "", 1)
         catalog_id = f"cat_{job_id}"
@@ -69,7 +82,7 @@ class EODHPClient:
             f"{self.rc_url}/catalogs/user-datasets/catalogs/{self.username}/catalogs/processing-results"
             f"/catalogs/{workflow_id}/catalogs/{catalog_id}/collections/{collection_id}/items"
         )
-        logger.info(f"Searching for item in {items_url}")
+        logger.info("Searching for item in %s", items_url)
         items_response = requests.get(
             items_url, headers={"Authorization": f"Bearer {self.api_token}"}
         )
