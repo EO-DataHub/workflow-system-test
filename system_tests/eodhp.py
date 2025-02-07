@@ -55,9 +55,22 @@ class EODHPClient:
                             logger.error("Failed to find key %s in bucket", key)
                             raise err
 
-    def get_item_from_rc(self, collection: dict, debug: bool = None) -> dict:
+    def get_item_from_rc(self, workflow_id: str, collection: dict, debug: bool = None) -> dict:
         """Get the first item from the Resource Catalogue"""
         logger.info("Identifying item from Resource Catalogue")
+
+        # Get collection_url
+        links = collection.get("links", [])
+
+        # TODO: extract catalog path from the root catalog url
+        if links:
+            for link in links:
+                if link.get("rel") == "root":
+                    root_url = link.get("href")
+                    logger.info("Found root link: %s", root_url)
+                    break
+        else:
+            raise WorkflowResultsException("No links found in collection")
 
         id = collection.get("id")
         job_id = id.replace("col_", "", 1)
@@ -66,10 +79,10 @@ class EODHPClient:
 
         # Get resulting collection from resource catalogue
         items_url = (
-            f"{self.rc_url}/catalogs/user-datasets/catalogs/{self.username}/catalogs/processing-results/"
-            f"catalogs/{catalog_id}/collections/{collection_id}/items"
+            f"{self.rc_url}/catalogs/user-datasets/catalogs/{self.username}/catalogs/processing-results"
+            f"/catalogs/{workflow_id}/catalogs/{catalog_id}/collections/{collection_id}/items"
         )
-        logger.info(f"Searching for item in {items_url}")
+        logger.info("Searching for item in %s", items_url)
         items_response = requests.get(
             items_url, headers={"Authorization": f"Bearer {self.api_token}"}
         )
@@ -119,7 +132,7 @@ class EODHPClient:
             raise err
         return collection
 
-    def check_s3_access_token(self, results_link: str, debug: bool = False):
+    def check_s3_access_token(self, workflow_id: str, results_link: str, debug: bool = False):
         """Check the S3 access token is valid"""
         logger.info("Checking S3 access token")
 
@@ -130,7 +143,7 @@ class EODHPClient:
         if debug:
             item_body = self.get_item_from_s3(collection)
         else:
-            item_body = self.get_item_from_rc(collection)
+            item_body = self.get_item_from_rc(workflow_id, collection)
 
         # Identify asset href
         if "assets" in item_body:

@@ -40,6 +40,7 @@ class TestEODHPClient(unittest.TestCase):
     @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_item_from_rc(self, MockRequests):
         eodhp_client = EODHPClient("https://test-rc-url", "username", "api-token")
+        workflow_id = "test-workflow"
 
         # Configure mocks
         mock_response = Mock()
@@ -63,7 +64,15 @@ class TestEODHPClient(unittest.TestCase):
             "links": [{"rel": "item", "href": "s3://test-bucket/test-key"}],
         }
 
-        item = eodhp_client.get_item_from_rc(collection)
+        item = eodhp_client.get_item_from_rc(workflow_id, collection)
+
+        expected_url = (
+            "https://test-rc-url/catalogs/user-datasets/catalogs/username/catalogs/"
+            f"processing-results/catalogs/{workflow_id}/catalogs/cat_test_collection_id/collections/col_test_collection_id/items"
+        )
+        MockRequests.get.assert_called_once_with(
+            expected_url, headers={"Authorization": "Bearer api-token"}
+        )
 
         self.assertEqual(
             {
@@ -106,6 +115,7 @@ class TestEODHPClient(unittest.TestCase):
         self, mock_logger, mock_get_item_from_rc, mock_get_result_collection, MockRequests
     ):
         eodhp_client = EODHPClient("https://test-rc-url", "username", "api-token")
+        workflow_id = "test-workflow"
 
         # Configure mocks
         mock_response = Mock()
@@ -137,7 +147,15 @@ class TestEODHPClient(unittest.TestCase):
             "links": [{"rel": "self", "href": "s3://bucket_name/path/item_link"}],
         }
 
-        eodhp_client.check_s3_access_token("https://test-results-link")
+        eodhp_client.check_s3_access_token(workflow_id, "https://test-results-link")
+
+        mock_get_item_from_rc.assert_called_once_with(
+            workflow_id,
+            {
+                "id": "test_collection_id",
+                "links": [{"rel": "item", "href": "s3://test-bucket/test-key"}],
+            },
+        )
 
         calls = mock_logger.info.call_args_list
 
