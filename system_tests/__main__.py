@@ -37,6 +37,7 @@ def cli():
 @cli.command()
 @click.argument("workflow-api-url")
 @click.argument("resource-catalogue-api-url")
+@click.argument("resource-catalogue-user-catalog")
 @click.argument("workflow-file-name")
 @click.argument("inputs-file-name")
 @click.option("--github-repo", "-gr", default=None, help="GitHub repository")
@@ -47,6 +48,7 @@ def cli():
 def workflow(
     workflow_api_url,
     resource_catalogue_api_url,
+    resource_catalogue_user_catalog,
     workflow_file_name,
     inputs_file_name,
     github_repo,
@@ -83,7 +85,9 @@ def workflow(
     ades_client = ADESClient(
         workflow_api_url, username, boot_timeout, monitor_timeout, api_token=api_token
     )
-    eodhp_client = EODHPClient(resource_catalogue_api_url, username, api_token=api_token)
+    eodhp_client = EODHPClient(
+        resource_catalogue_api_url, resource_catalogue_user_catalog, username, api_token=api_token
+    )
 
     try:
         # Check ades is running

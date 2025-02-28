@@ -15,10 +15,12 @@ class EODHPClient:
     def __init__(
         self,
         rc_url: str,
+        user_catalog: str,
         username: str,
         api_token=None,
     ):
         self.rc_url = rc_url
+        self.user_catalog = user_catalog
         self.username = username
         self.api_token = api_token
 
@@ -79,7 +81,7 @@ class EODHPClient:
 
         # Get resulting collection from resource catalogue
         items_url = (
-            f"{self.rc_url}/catalogs/user-datasets/catalogs/{self.username}/catalogs/processing-results"
+            f"{self.rc_url}/catalogs/{self.user_catalog}/catalogs/{self.username}/catalogs/processing-results"
             f"/catalogs/{workflow_id}/catalogs/{catalog_id}/collections/{collection_id}/items"
         )
         logger.info("Searching for item in %s", items_url)
