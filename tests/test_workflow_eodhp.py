@@ -7,14 +7,15 @@ from system_tests.eodhp import EODHPClient
 
 class TestEODHPClient(unittest.TestCase):
     def test_init(self):
-        eodhp_client = EODHPClient("https://test-rc-url", "user", "username", "api-token")
+        eodhp_client = EODHPClient("https://test-rc-url", "user-catalogue-prefix", "username", "api-token")
 
         self.assertEqual("https://test-rc-url", eodhp_client.rc_url)
+        self.assertEqual("user-catalogue-prefix", eodhp_client.user_catalog_prefix)
         self.assertEqual("username", eodhp_client.username)
         self.assertEqual("api-token", eodhp_client.api_token)
 
     def test_get_item_from_s3(self):
-        eodhp_client = EODHPClient("https://test-rc-url", "user", "username", "api-token")
+        eodhp_client = EODHPClient("https://test-rc-url", "user-catalogue-prefix", "username", "api-token")
 
         collection = {
             "id": "test_collection_id",
@@ -39,7 +40,7 @@ class TestEODHPClient(unittest.TestCase):
 
     @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_item_from_rc(self, MockRequests):
-        eodhp_client = EODHPClient("https://test-rc-url", "user", "username", "api-token")
+        eodhp_client = EODHPClient("https://test-rc-url", "user-catalogue-prefix", "username", "api-token")
         workflow_id = "test-workflow"
 
         # Configure mocks
@@ -67,7 +68,7 @@ class TestEODHPClient(unittest.TestCase):
         item = eodhp_client.get_item_from_rc(workflow_id, collection)
 
         expected_url = (
-            "https://test-rc-url/catalogs/user/catalogs/username/catalogs/"
+            "https://test-rc-url/catalogs/user-catalogue-prefix/catalogs/username/catalogs/"
             f"processing-results/catalogs/{workflow_id}/catalogs/cat_test_collection_id/collections/col_test_collection_id/items"
         )
         MockRequests.get.assert_called_once_with(
@@ -84,7 +85,7 @@ class TestEODHPClient(unittest.TestCase):
 
     @patch("system_tests.eodhp.requests")  # Mock the requests module
     def test_get_result_collection(self, MockRequests):
-        eodhp_client = EODHPClient("https://test-rc-url", "user", "username", "api-token")
+        eodhp_client = EODHPClient("https://test-rc-url", "user-catalogue-prefix", "username", "api-token")
 
         # Configure mocks
         mock_response = Mock()
@@ -114,7 +115,7 @@ class TestEODHPClient(unittest.TestCase):
     def test_check_s3_access_token(
         self, mock_logger, mock_get_item_from_rc, mock_get_result_collection, MockRequests
     ):
-        eodhp_client = EODHPClient("https://test-rc-url", "user", "username", "api-token")
+        eodhp_client = EODHPClient("https://test-rc-url", "user-catalogue-prefix", "username", "api-token")
         workflow_id = "test-workflow"
 
         # Configure mocks
@@ -169,7 +170,7 @@ class TestEODHPClient(unittest.TestCase):
     @patch("system_tests.eodhp.EODHPClient.get_result_collection")  # Mock the load_inputs method
     @patch("system_tests.eodhp.logger")  # Mock the logger module
     def test_check_outputs_in_s3(self, mock_logger, mock_get_result_collection):
-        eodhp_client = EODHPClient("https://test-rc-url", "user", "username", "api-token")
+        eodhp_client = EODHPClient("https://test-rc-url", "user-catalogue-prefix", "username", "api-token")
 
         mock_get_result_collection.return_value = {
             "id": "test_collection_id",
