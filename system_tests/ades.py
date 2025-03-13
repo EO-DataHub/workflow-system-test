@@ -20,14 +20,14 @@ class ADESClient:
     def __init__(
         self,
         url: str,
-        username: str,
+        workspace: str,
         boot_timeout: int = 270,
         monitor_timeout: int = 270,
         api_token: str = None,
     ):
         self.url = url
-        self.username = username
-        self.user_url = f"{self.url}/{self.username}"
+        self.workspace = workspace
+        self.user_url = f"{self.url}/{self.workspace}"
         self.boot_timeout = boot_timeout
         self.monitor_timeout = monitor_timeout
         self.api_token = api_token
@@ -62,7 +62,7 @@ class ADESClient:
         """Check the API token is valid"""
         logger.info("Testing refresh token")
         response = requests.get(
-            f"{self.user_url}/ogc-api/processes",
+            f"{self.user_url}/processes",
             headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
         )
         if response.status_code == 200:
@@ -79,7 +79,7 @@ class ADESClient:
         """Undeploy the workflow if it is already deployed"""
         logger.info("Undeploying workflow")
         response = requests.delete(
-            f"{self.user_url}/ogc-api/processes/{workflow_id}",
+            f"{self.user_url}/processes/{workflow_id}",
             headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
         )
         if response.status_code == 204:
@@ -93,16 +93,13 @@ class ADESClient:
         # Check deployment status link is correct
         for header in headers:
             if header == "Location":
-                if (
-                    headers[header]
-                    != f"{self.user_url}/ogc-api/processes/{cwl_file.get_workflow_id()}"
-                ):
+                if headers[header] != f"{self.user_url}/processes/{cwl_file.get_workflow_id()}":
                     logger.error("Deployment status link is incorrect")
                     raise WorkflowDeploymentException("Deployment status link is incorrect")
 
     def call_deploy_endpoint_url(self, location: str):
         response = requests.post(
-            f"{self.user_url}/ogc-api/processes",
+            f"{self.user_url}/processes",
             headers={
                 "Authorization": f"Bearer {self.api_token}",
                 "Accept": "application/json",
@@ -118,7 +115,7 @@ class ADESClient:
         with open(location, "r") as workflow_file:
             workflow_file = workflow_file.read()
         response = requests.post(
-            f"{self.user_url}/ogc-api/processes",
+            f"{self.user_url}/processes",
             headers={
                 "Authorization": f"Bearer {self.api_token}",
                 "Accept": "application/json",
@@ -167,7 +164,7 @@ class ADESClient:
         """Check the deployment status of the workflow"""
         logger.info("Checking deployment status")
         response = requests.get(
-            f"{self.user_url}/ogc-api/processes/{workflow_id}",
+            f"{self.user_url}/processes/{workflow_id}",
             headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
         )
         if response.status_code == 200:
@@ -175,7 +172,7 @@ class ADESClient:
             # Check deployment execute link is correct
             for link in response.json().get("links"):
                 if link["title"] == "Execute End Point":
-                    if link["href"] != f"{self.user_url}/ogc-api/processes/{workflow_id}/execution":
+                    if link["href"] != f"{self.user_url}/processes/{workflow_id}/execution":
                         logger.error("Deployment execute link is incorrect")
                         raise WorkflowDeploymentException("Deployment execute link is incorrect")
         elif response.status_code == 404:
@@ -193,10 +190,10 @@ class ADESClient:
         """Execute the workflow"""
         logger.info("Preparing to execute workflow")
         inputs = workflow.get_workflow_inputs()
-        inputs["inputs"].update({"workspace": self.username})
+        inputs["inputs"].update({"workspace": self.workspace})
         logger.info("Executing workflow")
         response = requests.post(
-            f"{self.user_url}/ogc-api/processes/{workflow.get_workflow_id()}/execution",
+            f"{self.user_url}/processes/{workflow.get_workflow_id()}/execution",
             headers={
                 "Authorization": f"Bearer {self.api_token}",
                 "Accept": "application/json",
@@ -216,7 +213,7 @@ class ADESClient:
     def monitor_workflow(self, job_id: str) -> str:
         """Monitor the workflow execution and wait for results"""
         logger.info("Monitoring workflow")
-        status_url = f"{self.user_url}/ogc-api/jobs/{job_id}"
+        status_url = f"{self.user_url}/jobs/{job_id}"
         response = requests.get(
             status_url,
             headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
@@ -248,7 +245,7 @@ class ADESClient:
                     )
                     time.sleep(5)
                     response = requests.get(
-                        f"{self.user_url}/ogc-api/jobs/{job_id}",
+                        f"{self.user_url}/jobs/{job_id}",
                         headers={
                             "Authorization": f"Bearer {self.api_token}",
                             "Accept": "application/json",
