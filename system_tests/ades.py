@@ -21,13 +21,17 @@ class ADESClient:
         self,
         url: str,
         workspace: str,
+        api_suffix: str = None,
         boot_timeout: int = 270,
         monitor_timeout: int = 270,
         api_token: str = None,
     ):
         self.url = url
         self.workspace = workspace
-        self.user_url = f"{self.url}/{self.workspace}"
+        if api_suffix:
+            self.user_url = f"{self.url}/{self.workspace}/{api_suffix}"
+        else:
+            self.user_url = f"{self.url}/{self.workspace}"
         self.boot_timeout = boot_timeout
         self.monitor_timeout = monitor_timeout
         self.api_token = api_token
