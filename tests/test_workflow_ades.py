@@ -12,18 +12,18 @@ class TestEODHPClient(unittest.TestCase):
     def test_init(self):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
 
         self.assertEqual(ades_client.url, "https://test-ades-url")
-        self.assertEqual(ades_client.username, "username")
-        self.assertEqual(ades_client.user_url, "https://test-ades-url/username")
+        self.assertEqual(ades_client.workspace, "workspace")
+        self.assertEqual(ades_client.user_url, "https://test-ades-url/workspace")
 
     @patch("system_tests.ades.time.sleep")  # Mock the requests module
     @patch("system_tests.ades.requests")  # Mock the requests module
     @patch("system_tests.ades.logger")  # Mock the logger module
     def test_check_status(self, mock_logger, MockRequests, mock_sleep):
-        ades_client = ADESClient("https://test-ades-url", "username")
+        ades_client = ADESClient("https://test-ades-url", "workspace")
         # Configure mocks
         mock_sleep.return_value = None
         mock_response_1 = Mock()
@@ -55,7 +55,7 @@ class TestEODHPClient(unittest.TestCase):
     def test_check_api_token(self, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
         api_token = "valid-api-token"
         ades_client.set_api_token(api_token)
@@ -76,7 +76,7 @@ class TestEODHPClient(unittest.TestCase):
     def test_undeploy_workflow(self, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
         api_token = "valid-api-token"
         ades_client.set_api_token(api_token)
@@ -96,14 +96,14 @@ class TestEODHPClient(unittest.TestCase):
     def test_check_deployment_status_link_pass(self):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
 
         raw_cwl = {"$graph": [{"id": "workflow_id"}]}
 
         cwl_file = CWLFile(raw_cwl, {}, "")
 
-        headers = {"Location": "https://test-ades-url/username/ogc-api/processes/workflow_id"}
+        headers = {"Location": "https://test-ades-url/workspace/processes/workflow_id"}
 
         # Check no error is raised
         ades_client.check_deployment_status_link(headers, cwl_file)
@@ -111,14 +111,14 @@ class TestEODHPClient(unittest.TestCase):
     def test_check_deployment_status_link_fail(self):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
 
         raw_cwl = {"$graph": [{"id": "workflow_id"}]}
 
         cwl_file = CWLFile(raw_cwl, {}, "")
 
-        headers = {"Location": "https://test-ades-url/username/ogc-api/processes/wrong-workflow"}
+        headers = {"Location": "https://test-ades-url/workspace/processes/wrong-workflow"}
 
         # Check raises error
         with pytest.raises(WorkflowDeploymentException):
@@ -132,7 +132,7 @@ class TestEODHPClient(unittest.TestCase):
     def test_deploy_workflow_url(self, mock_check_link, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
         api_token = "valid-api-token"
         ades_client.set_api_token(api_token)
@@ -164,7 +164,7 @@ class TestEODHPClient(unittest.TestCase):
     ):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
         api_token = "valid-api-token"
         ades_client.set_api_token(api_token)
@@ -199,7 +199,7 @@ class TestEODHPClient(unittest.TestCase):
     def test_deploy_workflow_file(self, mock_check_link, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
         api_token = "valid-api-token"
         ades_client.set_api_token(api_token)
@@ -225,7 +225,7 @@ class TestEODHPClient(unittest.TestCase):
     def test_check_deployment_status(self, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
         api_token = "valid-api-token"
         ades_client.set_api_token(api_token)
@@ -238,7 +238,7 @@ class TestEODHPClient(unittest.TestCase):
             "links": [
                 {
                     "title": "Execute End Point",
-                    "href": "https://test-ades-url/username/ogc-api/processes/workflow_id/execution",
+                    "href": "https://test-ades-url/workspace/processes/workflow_id/execution",
                 }
             ],
         }
@@ -256,7 +256,7 @@ class TestEODHPClient(unittest.TestCase):
     def test_execute_workflow(self, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
         api_token = "valid-api-token"
         ades_client.set_api_token(api_token)
@@ -289,7 +289,7 @@ class TestEODHPClient(unittest.TestCase):
     def test_monitor_workflow(self, mock_logger, MockRequests, mock_check_logs_access, mock_sleep):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
         api_token = "valid-api-token"
         ades_client.set_api_token(api_token)
@@ -311,7 +311,7 @@ class TestEODHPClient(unittest.TestCase):
             "links": [
                 {
                     "title": "Result location",
-                    "href": "https:/test-ades-url/username/jobs/job_id/results",
+                    "href": "https:/test-ades-url/workspace/jobs/job_id/results",
                 },
                 {
                     "title": "Tool log node_stage_out.log",
@@ -323,7 +323,7 @@ class TestEODHPClient(unittest.TestCase):
 
         results_link = ades_client.monitor_workflow("job_id")
 
-        self.assertEqual("https:/test-ades-url/username/jobs/job_id/results", results_link)
+        self.assertEqual("https:/test-ades-url/workspace/jobs/job_id/results", results_link)
 
         calls = mock_logger.info.call_args_list
 
@@ -337,7 +337,7 @@ class TestEODHPClient(unittest.TestCase):
     def test_check_logs_access(self, mock_logger, MockRequests):
         ades_client = ADESClient(
             "https://test-ades-url",
-            "username",
+            "workspace",
         )
 
         # Configure mocks
@@ -349,7 +349,7 @@ class TestEODHPClient(unittest.TestCase):
         links = [
             {
                 "title": "Result location",
-                "href": "https:/test-ades-url/username/jobs/job_id/results",
+                "href": "https:/test-ades-url/workspace/jobs/job_id/results",
             },
             {
                 "title": "Tool log node_stage_out.log",
@@ -357,7 +357,7 @@ class TestEODHPClient(unittest.TestCase):
             },
         ]
 
-        ades_client.check_logs_access("https:/test-ades-url/username/jobs/job_id/results", links)
+        ades_client.check_logs_access("https:/test-ades-url/workspace/jobs/job_id/results", links)
 
         calls = mock_logger.info.call_args_list
 
