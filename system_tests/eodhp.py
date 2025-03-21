@@ -74,10 +74,8 @@ class EODHPClient:
         else:
             raise WorkflowResultsException("No links found in collection")
 
-        id = collection.get("id")
-        job_id = id.replace("col_", "", 1)
-        catalog_id = f"cat_{job_id}"
-        collection_id = f"col_{job_id}"
+        catalog_id = "catalog"
+        collection_id = "collection"
 
         # Get resulting collection from resource catalogue
         items_url = (
