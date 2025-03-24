@@ -75,7 +75,7 @@ class TestEODHPClient(unittest.TestCase):
 
         expected_url = (
             "https://test-rc-url/catalogs/user-catalogue-prefix/catalogs/username/catalogs/"
-            f"processing-results/catalogs/{workflow_id}/catalogs/cat_test_collection_id/collections/col_test_collection_id/items"
+            f"processing-results/catalogs/{workflow_id}/catalogs/catalog/collections/collection/items"
         )
         MockRequests.get.assert_called_once_with(
             expected_url, headers={"Authorization": "Bearer api-token"}
