@@ -1,8 +1,10 @@
 import json
+import os
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+import requests
 import yaml
 from github import Github
 
@@ -71,16 +73,27 @@ class GitCWLLoader(CWLLoader):
         self._g = Github()
 
     def load_cwl(self) -> CWLFile:
-        repo = self._g.get_repo(self.repo_name)
-        raw_file = repo.get_contents(self.cwl_filename, ref=self.branch_name)
-        workflow_file = raw_file.decoded_content
-        return CWLFile(yaml.safe_load(workflow_file), self.load_inputs(), self.get_location())
+        if os.getenv("USE_GITHUB", False):
+            repo = self._g.get_repo(self.repo_name)
+            raw_file = repo.get_contents(self.cwl_filename, ref=self.branch_name)
+            workflow_file = raw_file.decoded_content
+        else:
+            cwl_file = requests.get(self.get_cwl_location())
+            workflow_file = cwl_file.content
+        return CWLFile(yaml.safe_load(workflow_file), self.load_inputs(), self.get_cwl_location())
 
     def load_inputs(self) -> dict:
-        repo = self._g.get_repo(self.repo_name)
-        raw_file = repo.get_contents(self.inputs_filename, ref=self.branch_name)
-        inputs_file = raw_file.decoded_content
+        if os.getenv("USE_GITHUB", False):
+            repo = self._g.get_repo(self.repo_name)
+            raw_file = repo.get_contents(self.inputs_filename, ref=self.branch_name)
+            inputs_file = raw_file.decoded_content
+        else:
+            inputs_file = requests.get(self.get_inputs_location())
+            inputs_file = inputs_file.content
         return json.loads(inputs_file)
 
-    def get_location(self) -> str:
+    def get_cwl_location(self) -> str:
         return f"https://raw.githubusercontent.com/{self.repo_name}/{self.branch_name}/{self.cwl_filename}"
+
+    def get_inputs_location(self) -> str:
+        return f"https://raw.githubusercontent.com/{self.repo_name}/{self.branch_name}/{self.inputs_filename}"
