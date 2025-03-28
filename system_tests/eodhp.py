@@ -75,7 +75,10 @@ class EODHPClient:
             raise WorkflowResultsException("No links found in collection")
 
         catalog_id = "catalog"
-        collection_id = "collection"
+        collection_id = collection.get("id")
+        if collection_id is None:
+            logger.error("Collection ID is None")
+            raise WorkflowResultsException("Collection ID is None")
 
         # Get resulting collection from resource catalogue
         items_url = (
