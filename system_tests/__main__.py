@@ -40,6 +40,12 @@ def cli():
 @click.argument("workflow-file-name")
 @click.argument("inputs-file-name")
 @click.option(
+    "--api-suffix",
+    "-as",
+    default=None,
+    help="Any additional string required in the API URL, e.g. 'https://ades-url/<workspace>/<suffix>/...'",
+)
+@click.option(
     "--resource-catalogue-user-catalog-prefix",
     "-cp",
     default="user",
@@ -55,6 +61,7 @@ def workflow(
     resource_catalogue_api_url,
     workflow_file_name,
     inputs_file_name,
+    api_suffix,
     resource_catalogue_user_catalog_prefix,
     github_repo,
     github_branch,
@@ -84,16 +91,16 @@ def workflow(
     cwl_file = cwl_loader.load_cwl()
     cwl_file_id = cwl_file.get_workflow_id()
 
-    username = os.getenv("USERNAME")
+    workspace = os.getenv("WORKSPACE")
     api_token = os.getenv("API_TOKEN")
 
     ades_client = ADESClient(
-        workflow_api_url, username, boot_timeout, monitor_timeout, api_token=api_token
+        workflow_api_url, workspace, api_suffix, boot_timeout, monitor_timeout, api_token=api_token
     )
     eodhp_client = EODHPClient(
         resource_catalogue_api_url,
         resource_catalogue_user_catalog_prefix,
-        username,
+        workspace,
         api_token=api_token,
     )
 
