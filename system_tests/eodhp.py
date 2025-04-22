@@ -106,7 +106,10 @@ class EODHPClient:
                 response = items_response.text
                 logger.error("Response is %s", response)
             raise WorkflowResultsException("Failed to get workflow results")
-        items = items_response.json().get("features")
+        items = items_response.json().get("features", [])
+        if len(items) == 0:
+            logger.error("No items found in %s", items_url)
+            raise WorkflowResultsException("No items found in workflow results")
         # Return first item
         return items[0]
 
