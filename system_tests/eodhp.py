@@ -113,7 +113,8 @@ class EODHPClient:
             logger.error("Response text is:")
             logger.error(items_response.text)
             raise WorkflowResultsException("Failed to get JSON from Resource Catalogue") from err
-        if len(items_response_json.get("features", [])) == 0:
+        features = items_response_json.get("features") or []
+        if len(features) == 0:
             logger.error("No items found in the collection yet, retrying in 30 seconds")
             time.sleep(30)
             items_response = requests.get(
@@ -137,14 +138,14 @@ class EODHPClient:
                 raise WorkflowResultsException(
                     "Failed to get JSON from Resource Catalogue"
                 ) from err
-            if len(items_response_json.get("features", [])) == 0:
+            features = items_response_json.get("features") or []
+            if len(features) == 0:
                 logger.error("No items found in the collection")
                 raise WorkflowResultsException(
                     "No items found in the collection, after second attempt"
                 )
-        items = items_response_json.get("features")
         # Return first item
-        return items[0]
+        return features[0]
 
     def get_result_collection(self, results_link: str):
         """Get the result collection"""
