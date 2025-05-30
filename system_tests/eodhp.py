@@ -90,7 +90,7 @@ class EODHPClient:
             items_url, headers={"Authorization": f"Bearer {self.api_token}"}
         )
         count = 0
-        while items_response.status_code == 404 and count < 3:
+        while items_response.status_code == 404 and count < 5:
             logger.info("Item not found, retrying in 30 seconds")
             time.sleep(30)
             items_response = requests.get(
@@ -106,7 +106,43 @@ class EODHPClient:
                 response = items_response.text
                 logger.error("Response is %s", response)
             raise WorkflowResultsException("Failed to get workflow results")
-        items = items_response.json().get("features")
+        try:
+            items_response_json = items_response.json()
+        except JSONDecodeError as err:
+            logger.error("Failed to decode JSON in catalogue response")
+            logger.error("Response text is:")
+            logger.error(items_response.text)
+            raise WorkflowResultsException("Failed to get JSON from Resource Catalogue") from err
+        if len(items_response_json.get("features", [])) == 0:
+            logger.error("No items found in the collection yet, retrying in 30 seconds")
+            time.sleep(30)
+            items_response = requests.get(
+                items_url, headers={"Authorization": f"Bearer {self.api_token}"}
+            )
+            if items_response.status_code != 200:
+                logger.error("Failed to get items from %s", items_url)
+                try:
+                    response = items_response.json()
+                    logger.error("Response is %s", response)
+                except JSONDecodeError:
+                    response = items_response.text
+                    logger.error("Response is %s", response)
+                raise WorkflowResultsException("Failed to get workflow results on second attempt")
+            try:
+                items_response_json = items_response.json()
+            except JSONDecodeError as err:
+                logger.error("Failed to decode JSON in catalogue response")
+                logger.error("Response text is:")
+                logger.error(items_response.text)
+                raise WorkflowResultsException(
+                    "Failed to get JSON from Resource Catalogue"
+                ) from err
+            if len(items_response_json.get("features", [])) == 0:
+                logger.error("No items found in the collection")
+                raise WorkflowResultsException(
+                    "No items found in the collection, after second attempt"
+                )
+        items = items_response_json.get("features")
         # Return first item
         return items[0]
 
