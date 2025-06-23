@@ -4,23 +4,23 @@
 #
 #    pip-compile
 #
-boto3==1.38.3
+boto3==1.38.41
     # via workflow-system-test (pyproject.toml)
-botocore==1.38.3
+botocore==1.38.41
     # via
     #   boto3
     #   s3transfer
-certifi==2025.4.26
+certifi==2025.6.15
     # via requests
 cffi==1.17.1
     # via
     #   cryptography
     #   pynacl
-charset-normalizer==3.4.1
+charset-normalizer==3.4.2
     # via requests
-click==8.1.8
+click==8.2.1
     # via workflow-system-test (pyproject.toml)
-cryptography==44.0.2
+cryptography==45.0.4
     # via pyjwt
 deprecated==1.2.18
     # via pygithub
@@ -42,17 +42,17 @@ python-dateutil==2.9.0.post0
     # via botocore
 pyyaml==6.0.2
     # via workflow-system-test (pyproject.toml)
-requests==2.32.3
+requests==2.32.4
     # via
     #   pygithub
     #   workflow-system-test (pyproject.toml)
-s3transfer==0.12.0
+s3transfer==0.13.0
     # via boto3
 six==1.17.0
     # via python-dateutil
-typing-extensions==4.13.2
+typing-extensions==4.14.0
     # via pygithub
-urllib3==2.4.0
+urllib3==2.5.0
     # via
     #   botocore
     #   pygithub

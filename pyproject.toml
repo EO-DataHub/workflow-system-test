@@ -14,7 +14,7 @@
 
 [project]
 name = "workflow-system-test"
-version = "0.1.0"
+dynamic = ["version"]
 description = "An image to run a full system test of the workflow runner component (ADES)."
 readme = "README.md"
 
@@ -111,6 +111,9 @@ markers = [
 
 [tool.setuptools]
 packages = []
+
+[tool.setuptools-git-versioning]
+enabled = true
 
 [tool.isort]
 profile = "black"
