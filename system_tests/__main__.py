@@ -6,6 +6,7 @@ import boto3
 import click
 
 from .ades import ADESClient
+from .auth import TokenInfo, delete_api_token, get_api_token
 from .cwl_loader import FileCWLLoader, GitCWLLoader
 from .eodhp import EODHPClient
 
@@ -84,15 +85,37 @@ def workflow(
             branch_name=github_branch,
         )
     else:
-        cwl_loader = FileCWLLoader(
-            cwl_filename=workflow_file_name, inputs_filename=inputs_file_name
-        )
+        cwl_loader = FileCWLLoader(cwl_filename=workflow_file_name, inputs_filename=inputs_file_name)
 
     cwl_file = cwl_loader.load_cwl()
     cwl_file_id = cwl_file.get_workflow_id()
 
     workspace = os.getenv("WORKSPACE")
+
+    # Check if API_TOKEN is provided, otherwise generate it
     api_token = os.getenv("API_TOKEN")
+    token_info: TokenInfo | None = None
+
+    if not api_token:
+        # Generate token using credentials
+        logger.info("Generating API token")
+        username = os.getenv("USERNAME")
+        password = os.getenv("PASSWORD")
+        client_id = os.getenv("CLIENT_ID")
+        keycloak_realm = os.getenv("KEYCLOAK_REALM", "eodhp")
+
+        if not all([username, password, client_id]):
+            raise ValueError("USERNAME, PASSWORD, and CLIENT_ID environment variables must be set")
+
+        # Use workflow_api_url as base_url (extract base URL from the full URL)
+        # If workflow_api_url is like "https://example.com/ades/workspace/api", extract "https://example.com"
+        base_url = "/".join(workflow_api_url.split("/")[:3])  # TODO: verify this!
+
+        token_info = get_api_token(username, password, base_url, keycloak_realm, client_id)
+        api_token = token_info.token
+        logger.info("API token generated successfully")
+    else:
+        logger.info("Using API_TOKEN from environment variable")
 
     ades_client = ADESClient(
         workflow_api_url, workspace, api_suffix, boot_timeout, monitor_timeout, api_token=api_token
@@ -157,6 +180,14 @@ def workflow(
     finally:
         # Undeploy test workflow
         ades_client.undeploy_workflow(cwl_file_id)
+
+        # Delete the API token if it was generated
+        if token_info:
+            try:
+                logger.info("Deleting API token")
+                delete_api_token(token_info)
+            except Exception as e:
+                logger.error(f"Failed to delete API token: {e}")
 
 
 if __name__ == "__main__":

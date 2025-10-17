@@ -159,9 +159,7 @@ class ADESClient:
                 cwl_file.get_workflow_id(),
             )
         else:
-            logger.error(
-                "Failed to deploy workflow %s : %s", cwl_file.get_workflow_id(), response.text
-            )
+            logger.error("Failed to deploy workflow %s : %s", cwl_file.get_workflow_id(), response.text)
             raise WorkflowDeploymentException("Failed to deploy workflow")
 
     def check_deployment_status(self, workflow_id: str):
@@ -244,9 +242,7 @@ class ADESClient:
                     logger.error(response.json().get("message"))
                     raise WorkflowMonitorException("Workflow failed during execution")
                 else:
-                    logger.info(
-                        "Workflow still running, message: %s", response.json().get("message")
-                    )
+                    logger.info("Workflow still running, message: %s", response.json().get("message"))
                     time.sleep(5)
                     response = requests.get(
                         f"{self.user_url}/jobs/{job_id}",
