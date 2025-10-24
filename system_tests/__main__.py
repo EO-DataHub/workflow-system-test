@@ -85,7 +85,9 @@ def workflow(
             branch_name=github_branch,
         )
     else:
-        cwl_loader = FileCWLLoader(cwl_filename=workflow_file_name, inputs_filename=inputs_file_name)
+        cwl_loader = FileCWLLoader(
+            cwl_filename=workflow_file_name, inputs_filename=inputs_file_name
+        )
 
     cwl_file = cwl_loader.load_cwl()
     cwl_file_id = cwl_file.get_workflow_id()
