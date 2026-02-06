@@ -1,5 +1,6 @@
 import logging
 import time
+from collections.abc import Mapping
 from json import JSONDecodeError
 
 import requests
@@ -21,11 +22,11 @@ class ADESClient:
         self,
         url: str,
         workspace: str,
-        api_suffix: str = None,
+        api_suffix: str | None = None,
         boot_timeout: int = 270,
         monitor_timeout: int = 270,
-        api_token: str = None,
-    ):
+        api_token: str | None = None,
+    ) -> None:
         self.url = url
         self.workspace = workspace
         if api_suffix:
@@ -36,10 +37,10 @@ class ADESClient:
         self.monitor_timeout = monitor_timeout
         self.api_token = api_token
 
-    def set_api_token(self, api_token: str):
+    def set_api_token(self, api_token: str) -> None:
         self.api_token = api_token
 
-    def check_status(self):
+    def check_status(self) -> None:
         """Check the ADES is running and available"""
         logger.info("Checking ADES status")
         response = requests.get(self.url)
@@ -62,7 +63,7 @@ class ADESClient:
         logger.error("ADES start up reached timeout, ending test")
         raise ADESTimeOutException("ADES start up reached timeout")
 
-    def check_api_token(self):
+    def check_api_token(self) -> None:
         """Check the API token is valid"""
         logger.info("Testing refresh token")
         response = requests.get(
@@ -79,7 +80,7 @@ class ADESClient:
             logger.error("Refresh token failed: %s", error_response)
             raise AccessTokenException("Refresh token failed")
 
-    def undeploy_workflow(self, workflow_id: str):
+    def undeploy_workflow(self, workflow_id: str) -> None:
         """Undeploy the workflow if it is already deployed"""
         logger.info("Undeploying workflow")
         response = requests.delete(
@@ -93,15 +94,14 @@ class ADESClient:
         else:
             logger.error("Failed to undeploy workflow %s: %s", workflow_id, response.json())
 
-    def check_deployment_status_link(self, headers, cwl_file):
+    def check_deployment_status_link(self, headers: Mapping[str, str], cwl_file: CWLFile) -> None:
         # Check deployment status link is correct
-        for header in headers:
-            if header == "Location":
-                if headers[header] != f"{self.user_url}/processes/{cwl_file.get_workflow_id()}":
-                    logger.error("Deployment status link is incorrect")
-                    raise WorkflowDeploymentException("Deployment status link is incorrect")
+        for header, value in headers.items():
+            if header == "Location" and value != f"{self.user_url}/processes/{cwl_file.get_workflow_id()}":
+                logger.error("Deployment status link is incorrect")
+                raise WorkflowDeploymentException("Deployment status link is incorrect")
 
-    def call_deploy_endpoint_url(self, location: str):
+    def call_deploy_endpoint_url(self, location: str) -> requests.Response:
         response = requests.post(
             f"{self.user_url}/processes",
             headers={
@@ -115,8 +115,8 @@ class ADESClient:
         )
         return response
 
-    def call_deploy_endpoint_file(self, location: str):
-        with open(location, "r") as workflow_file:
+    def call_deploy_endpoint_file(self, location: str) -> requests.Response:
+        with open(location) as workflow_file:
             workflow_file = workflow_file.read()
         response = requests.post(
             f"{self.user_url}/processes",
@@ -129,7 +129,7 @@ class ADESClient:
         )
         return response
 
-    def deploy_workflow(self, cwl_file: CWLFile):
+    def deploy_workflow(self, cwl_file: CWLFile) -> None:
         """Deploy the workflow to the ADES"""
         if cwl_file.location.startswith("https://"):
             logger.info("Deploying workflow from URL: %s", cwl_file.location)
@@ -159,12 +159,10 @@ class ADESClient:
                 cwl_file.get_workflow_id(),
             )
         else:
-            logger.error(
-                "Failed to deploy workflow %s : %s", cwl_file.get_workflow_id(), response.text
-            )
+            logger.error("Failed to deploy workflow %s : %s", cwl_file.get_workflow_id(), response.text)
             raise WorkflowDeploymentException("Failed to deploy workflow")
 
-    def check_deployment_status(self, workflow_id: str):
+    def check_deployment_status(self, workflow_id: str) -> None:
         """Check the deployment status of the workflow"""
         logger.info("Checking deployment status")
         response = requests.get(
@@ -175,10 +173,12 @@ class ADESClient:
             logger.info("Workflow %s is available", workflow_id)
             # Check deployment execute link is correct
             for link in response.json().get("links"):
-                if link["title"] == "Execute End Point":
-                    if link["href"] != f"{self.user_url}/processes/{workflow_id}/execution":
-                        logger.error("Deployment execute link is incorrect")
-                        raise WorkflowDeploymentException("Deployment execute link is incorrect")
+                if (
+                    link["title"] == "Execute End Point"
+                    and link["href"] != f"{self.user_url}/processes/{workflow_id}/execution"
+                ):
+                    logger.error("Deployment execute link is incorrect")
+                    raise WorkflowDeploymentException("Deployment execute link is incorrect")
         elif response.status_code == 404:
             logger.error("Workflow %s not deployed", workflow_id)
             raise WorkflowDeploymentException("Failed to deploy workflow")
@@ -244,9 +244,7 @@ class ADESClient:
                     logger.error(response.json().get("message"))
                     raise WorkflowMonitorException("Workflow failed during execution")
                 else:
-                    logger.info(
-                        "Workflow still running, message: %s", response.json().get("message")
-                    )
+                    logger.info("Workflow still running, message: %s", response.json().get("message"))
                     time.sleep(5)
                     response = requests.get(
                         f"{self.user_url}/jobs/{job_id}",
@@ -265,7 +263,7 @@ class ADESClient:
         logger.error("Workflow timed out, job id: %s", job_id)
         raise WorkflowMonitorException("Workflow timed out")
 
-    def check_logs_access(self, status_url: str, links: list):
+    def check_logs_access(self, status_url: str, links: list) -> None:
         """Check the logs are accessible"""
         logger.info("Checking logs are accessible")
         logs_link = ""

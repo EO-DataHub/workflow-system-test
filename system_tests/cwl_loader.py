@@ -3,10 +3,12 @@ import os
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import cast
 
 import requests
 import yaml
 from github import Github
+from github.ContentFile import ContentFile
 
 
 @dataclass(frozen=True)
@@ -16,7 +18,7 @@ class CWLFile:
     location: str
 
     def get_workflow_id(self) -> str:
-        return self.cwl_data.get("$graph")[0].get("id")
+        return self.cwl_data["$graph"][0]["id"]
 
     def get_workflow_inputs(self) -> dict:
         return self.cwl_inputs
@@ -35,12 +37,12 @@ class CWLLoader(ABC):
 
 
 class FileCWLLoader(CWLLoader):
-    def __init__(self, cwl_filename: str, inputs_filename: str):
+    def __init__(self, cwl_filename: str, inputs_filename: str) -> None:
         self.cwl_filename = cwl_filename
         self.inputs_filename = inputs_filename
 
     def load_cwl(self) -> CWLFile:
-        with open(self.cwl_filename, "r") as workflow_file:
+        with open(self.cwl_filename) as workflow_file:
             workflow_file = workflow_file.read()
         cwl_file_dict = yaml.safe_load(workflow_file)
         new_workflow_id = cwl_file_dict["$graph"][0]["id"].split("--")[0]
@@ -54,7 +56,7 @@ class FileCWLLoader(CWLLoader):
         return CWLFile(cwl_file_dict, self.load_inputs(), self.get_location())
 
     def load_inputs(self) -> dict:
-        with open(self.inputs_filename, "r") as inputs_file:
+        with open(self.inputs_filename) as inputs_file:
             inputs_file = inputs_file.read()
         return json.loads(inputs_file)
 
@@ -63,9 +65,7 @@ class FileCWLLoader(CWLLoader):
 
 
 class GitCWLLoader(CWLLoader):
-    def __init__(
-        self, cwl_filename: str, inputs_filename: str, repo_name: str, branch_name: str = "main"
-    ):
+    def __init__(self, cwl_filename: str, inputs_filename: str, repo_name: str, branch_name: str = "main") -> None:
         self.cwl_filename = cwl_filename
         self.inputs_filename = inputs_filename
         self.repo_name = repo_name
@@ -76,7 +76,7 @@ class GitCWLLoader(CWLLoader):
         if os.getenv("USE_GITHUB", False):
             repo = self._g.get_repo(self.repo_name)
             raw_file = repo.get_contents(self.cwl_filename, ref=self.branch_name)
-            workflow_file = raw_file.decoded_content
+            workflow_file = cast(ContentFile, raw_file).decoded_content
         else:
             cwl_file = requests.get(self.get_cwl_location())
             workflow_file = cwl_file.content
@@ -86,7 +86,7 @@ class GitCWLLoader(CWLLoader):
         if os.getenv("USE_GITHUB", False):
             repo = self._g.get_repo(self.repo_name)
             raw_file = repo.get_contents(self.inputs_filename, ref=self.branch_name)
-            inputs_file = raw_file.decoded_content
+            inputs_file = cast(ContentFile, raw_file).decoded_content
         else:
             inputs_file = requests.get(self.get_inputs_location())
             inputs_file = inputs_file.content

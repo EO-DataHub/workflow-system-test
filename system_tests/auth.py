@@ -18,9 +18,7 @@ class TokenInfo:
     base_url: str
 
 
-def get_api_token(
-    username: str, password: str, base_url: str, keycloak_realm: str, client_id: str
-) -> TokenInfo:
+def get_api_token(username: str, password: str, base_url: str, keycloak_realm: str, client_id: str) -> TokenInfo:
     """
     Generate an API token for testing.
 
@@ -62,7 +60,7 @@ def get_api_token(
     )
 
 
-def delete_api_token(token_info: TokenInfo):
+def delete_api_token(token_info: TokenInfo) -> None:
     """
     Delete an API token after testing.
 
