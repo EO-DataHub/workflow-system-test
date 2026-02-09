@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)  # Add this line to define the logger
 
 
 @click.group()
-def cli():
+def cli() -> None:
     pass
 
 
@@ -58,18 +58,18 @@ def cli():
 @click.option("--boot-timeout", default=420, help="Boot timeout in seconds")
 @click.option("--monitor-timeout", default=270, help="Monitor timeout in seconds")
 def workflow(
-    workflow_api_url,
-    resource_catalogue_api_url,
-    workflow_file_name,
-    inputs_file_name,
-    api_suffix,
-    resource_catalogue_user_catalog_prefix,
-    github_repo,
-    github_branch,
-    debug,
-    boot_timeout,
-    monitor_timeout,
-):
+    workflow_api_url: str,
+    resource_catalogue_api_url: str,
+    workflow_file_name: str,
+    inputs_file_name: str,
+    api_suffix: str | None,
+    resource_catalogue_user_catalog_prefix: str,
+    github_repo: str | None,
+    github_branch: str | None,
+    debug: bool,
+    boot_timeout: int,
+    monitor_timeout: int,
+) -> None:
     logger.info("Starting workflow system test")
 
     # Set DEBUG logging
@@ -82,17 +82,15 @@ def workflow(
             cwl_filename=workflow_file_name,
             inputs_filename=inputs_file_name,
             repo_name=github_repo,
-            branch_name=github_branch,
+            branch_name=github_branch or "main",
         )
     else:
-        cwl_loader = FileCWLLoader(
-            cwl_filename=workflow_file_name, inputs_filename=inputs_file_name
-        )
+        cwl_loader = FileCWLLoader(cwl_filename=workflow_file_name, inputs_filename=inputs_file_name)
 
     cwl_file = cwl_loader.load_cwl()
     cwl_file_id = cwl_file.get_workflow_id()
 
-    workspace = os.getenv("WORKSPACE")
+    workspace = os.getenv("WORKSPACE", "")
 
     # Check if API_TOKEN is provided, otherwise generate it
     api_token = os.getenv("API_TOKEN")
@@ -106,7 +104,7 @@ def workflow(
         client_id = os.getenv("CLIENT_ID")
         keycloak_realm = os.getenv("KEYCLOAK_REALM", "eodhp")
 
-        if not all([username, password, client_id]):
+        if not username or not password or not client_id:
             raise ValueError("USERNAME, PASSWORD, and CLIENT_ID environment variables must be set")
 
         # Use workflow_api_url as base_url (extract base URL from the full URL)

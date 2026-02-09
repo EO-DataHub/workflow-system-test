@@ -4,6 +4,8 @@ import time
 from json import JSONDecodeError
 
 import botocore
+import botocore.client
+import botocore.exceptions
 import requests
 
 from .exceptions import WorkflowResultsException
@@ -17,21 +19,21 @@ class EODHPClient:
         rc_url: str,
         user_catalog_prefix: str,
         username: str,
-        api_token=None,
-    ):
+        api_token: str | None = None,
+    ) -> None:
         self.rc_url = rc_url
         self.user_catalog_prefix = user_catalog_prefix
         self.username = username
         self.api_token = api_token
 
-    def set_client(self, client):
+    def set_client(self, client: botocore.client.BaseClient) -> None:
         """Create a boto3 client"""
         self.client = client
 
     def get_item_from_s3(self, collection: dict) -> dict:
         """Get the first item from S3 (DEBUG ONLY)"""
         # Identify item
-        links = collection.get("links")
+        links = collection.get("links", [])
         for link in links:
             if link.get("rel") == "item":
                 href = link.get("href")
@@ -56,8 +58,9 @@ class EODHPClient:
                         else:
                             logger.error("Failed to find key %s in bucket", key)
                             raise err
+        raise WorkflowResultsException("No S3 item found in collection")
 
-    def get_item_from_rc(self, workflow_id: str, collection: dict, debug: bool = None) -> dict:
+    def get_item_from_rc(self, workflow_id: str, collection: dict, debug: bool | None = None) -> dict:
         """Get the first item from the Resource Catalogue"""
         logger.info("Identifying item from Resource Catalogue")
 
@@ -86,16 +89,12 @@ class EODHPClient:
             f"/catalogs/{workflow_id}/catalogs/{catalog_id}/collections/{collection_id}/items"
         )
         logger.info("Searching for item in %s", items_url)
-        items_response = requests.get(
-            items_url, headers={"Authorization": f"Bearer {self.api_token}"}
-        )
+        items_response = requests.get(items_url, headers={"Authorization": f"Bearer {self.api_token}"})
         count = 0
         while items_response.status_code == 404 and count < 5:
             logger.info("Item not found, retrying in 30 seconds")
             time.sleep(30)
-            items_response = requests.get(
-                items_url, headers={"Authorization": f"Bearer {self.api_token}"}
-            )
+            items_response = requests.get(items_url, headers={"Authorization": f"Bearer {self.api_token}"})
             count += 1
         if items_response.status_code != 200:
             logger.error("Failed to get results from %s", items_url)
@@ -117,9 +116,7 @@ class EODHPClient:
         if len(features) == 0:
             logger.error("No items found in the collection yet, retrying in 30 seconds")
             time.sleep(30)
-            items_response = requests.get(
-                items_url, headers={"Authorization": f"Bearer {self.api_token}"}
-            )
+            items_response = requests.get(items_url, headers={"Authorization": f"Bearer {self.api_token}"})
             if items_response.status_code != 200:
                 logger.error("Failed to get items from %s", items_url)
                 try:
@@ -135,19 +132,15 @@ class EODHPClient:
                 logger.error("Failed to decode JSON in catalogue response")
                 logger.error("Response text is:")
                 logger.error(items_response.text)
-                raise WorkflowResultsException(
-                    "Failed to get JSON from Resource Catalogue"
-                ) from err
+                raise WorkflowResultsException("Failed to get JSON from Resource Catalogue") from err
             features = items_response_json.get("features") or []
             if len(features) == 0:
                 logger.error("No items found in the collection")
-                raise WorkflowResultsException(
-                    "No items found in the collection, after second attempt"
-                )
+                raise WorkflowResultsException("No items found in the collection, after second attempt")
         # Return first item
         return features[0]
 
-    def get_result_collection(self, results_link: str):
+    def get_result_collection(self, results_link: str) -> dict:
         """Get the result collection"""
         logger.info("Getting result collection")
 
@@ -172,7 +165,7 @@ class EODHPClient:
             raise err
         return collection
 
-    def check_s3_access_token(self, workflow_id: str, results_link: str, debug: bool = False):
+    def check_s3_access_token(self, workflow_id: str, results_link: str, debug: bool = False) -> None:
         """Check the S3 access token is valid"""
         logger.info("Checking S3 access token")
 
@@ -191,9 +184,7 @@ class EODHPClient:
             for key, value in item_body["assets"].items():
                 if "href" in value:
                     asset_href = value["href"]
-                    response = requests.get(
-                        asset_href, headers={"Authorization": f"Bearer {self.api_token}"}
-                    )
+                    response = requests.get(asset_href, headers={"Authorization": f"Bearer {self.api_token}"})
                     if response.status_code == 200:
                         logger.info("Asset: %s available for download from: %s", key, asset_href)
                     else:
@@ -206,7 +197,7 @@ class EODHPClient:
 
         logger.info("S3 access token checked successfully")
 
-    def check_outputs_in_s3(self, results_link: str):
+    def check_outputs_in_s3(self, results_link: str) -> None:
         """Check the outputs are available in S3 (DEBUG ONLY)"""
         logger.info("Checking outputs found at %s", results_link)
 
@@ -214,7 +205,7 @@ class EODHPClient:
         collection = self.get_result_collection(results_link)
 
         # Check collection links are present in S3
-        links = collection.get("links")
+        links = collection.get("links", [])
         links_to_check = ["root", "self", "item"]
         for link in links:
             if link.get("rel") in links_to_check:
