@@ -1,3 +1,5 @@
+# Adapted from convert-url-app.cwl in https://github.com/EOEPCA/convert
+# (Apache-2.0, Copyright 2023 Telespazio UK Ltd).
 $graph:
 - class: Workflow
   doc: Convert URL
