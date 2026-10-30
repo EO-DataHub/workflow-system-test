@@ -5,7 +5,7 @@ import pytest
 
 from system_tests.ades import ADESClient
 from system_tests.cwl_loader import CWLFile
-from system_tests.exceptions import WorkflowDeploymentException
+from system_tests.exceptions import WorkflowDeploymentException, WorkflowMonitorException
 
 
 class TestEODHPClient(unittest.TestCase):
@@ -364,3 +364,75 @@ class TestEODHPClient(unittest.TestCase):
         calls = mock_logger.info.call_args_list
 
         assert calls[1][0][0] == "Logs are accessible"
+
+
+def job_response(status: str, message: str = "") -> Mock:
+    response = Mock()
+    response.status_code = 200
+    response.json.return_value = {"status": status, "message": message, "links": []}
+    return response
+
+
+class TestMonitorWorkflowFailure(unittest.TestCase):
+    def setUp(self) -> None:
+        self.ades_client = ADESClient("https://test-ades-url", "workspace", api_token="valid-api-token")
+
+    @patch("system_tests.ades.time.sleep")
+    @patch("system_tests.ades.requests")
+    def test_expected_failure(self, MockRequests: Mock, mock_sleep: Mock) -> None:
+        MockRequests.get.side_effect = [
+            job_response("running", "process is running"),
+            job_response("failed", "Execution failed: [step fail_on_purpose] completed permanentFail"),
+        ]
+
+        message = self.ades_client.monitor_workflow_failure("job_id", "fail_on_purpose")
+
+        assert message == "Execution failed: [step fail_on_purpose] completed permanentFail"
+        assert mock_sleep.call_count == 1
+
+    @patch("system_tests.ades.requests")
+    def test_failure_without_expected_message(self, MockRequests: Mock) -> None:
+        MockRequests.get.return_value = job_response("failed", "Execution failed")
+
+        assert self.ades_client.monitor_workflow_failure("job_id") == "Execution failed"
+
+    @patch("system_tests.ades.requests")
+    def test_failure_with_other_message(self, MockRequests: Mock) -> None:
+        MockRequests.get.return_value = job_response("failed", "Execution failed")
+
+        with pytest.raises(WorkflowMonitorException, match="does not contain 'fail_on_purpose'"):
+            self.ades_client.monitor_workflow_failure("job_id", "fail_on_purpose")
+
+    @patch("system_tests.ades.requests")
+    def test_failure_with_stack_trace(self, MockRequests: Mock) -> None:
+        MockRequests.get.return_value = job_response(
+            "failed", "Exception during execution...\nTraceback (most recent call last):\n fail_on_purpose"
+        )
+
+        with pytest.raises(WorkflowMonitorException, match="stack trace"):
+            self.ades_client.monitor_workflow_failure("job_id", "fail_on_purpose")
+
+    @patch("system_tests.ades.requests")
+    def test_unexpected_success(self, MockRequests: Mock) -> None:
+        MockRequests.get.return_value = job_response("successful")
+
+        with pytest.raises(WorkflowMonitorException, match="expected to fail"):
+            self.ades_client.monitor_workflow_failure("job_id")
+
+    @patch("system_tests.ades.time.sleep")
+    @patch("system_tests.ades.requests")
+    def test_hang_times_out(self, MockRequests: Mock, mock_sleep: Mock) -> None:
+        self.ades_client.monitor_timeout = 0
+        MockRequests.get.return_value = job_response("running")
+
+        with pytest.raises(WorkflowMonitorException, match="timed out"):
+            self.ades_client.monitor_workflow_failure("job_id")
+
+    @patch("system_tests.ades.requests")
+    def test_status_error(self, MockRequests: Mock) -> None:
+        response = Mock()
+        response.status_code = 500
+        MockRequests.get.return_value = response
+
+        with pytest.raises(WorkflowMonitorException, match="Failed to monitor job"):
+            self.ades_client.monitor_workflow_failure("job_id")

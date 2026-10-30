@@ -62,6 +62,8 @@ This CLI also supports shorthand arguments for `--github-repo` : `-gr` and `--gi
 
 You can also configure the `--debug` flag and two timeouts from the command line, `--boot-timeout` and `--monitor-timeout`, to specify the time to wait for the ADES to become available and for the workflow to finish executing respectively.
 
+To check that a broken workflow is reported as failed instead of hanging, add `--expect-failure`. The test then passes only if the job fails before the monitor timeout, without a stack trace in its message. `--expect-message <text>` also requires the failure message to contain that text, for example `examples/failing-step-app.cwl examples/failing-step-app-inputs.json --expect-failure --expect-message fail_on_purpose`.
+
 You can monitor the test progress via the logging outputs to the command line
 
 ## Managing requirements
