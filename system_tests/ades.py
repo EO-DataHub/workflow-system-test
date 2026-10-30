@@ -263,6 +263,36 @@ class ADESClient:
         logger.error("Workflow timed out, job id: %s", job_id)
         raise WorkflowMonitorException("Workflow timed out")
 
+    def monitor_workflow_failure(self, job_id: str, expected_message: str | None = None) -> str:
+        """Monitor a workflow execution that is expected to fail and return its failure message"""
+        logger.info("Monitoring workflow, expecting it to fail")
+        final_timeout = time.time() + self.monitor_timeout
+        while time.time() < final_timeout:
+            response = requests.get(
+                f"{self.user_url}/jobs/{job_id}",
+                headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
+            )
+            if response.status_code != 200:
+                logger.error("Failed to monitor job %s: %s", job_id, response.text)
+                raise WorkflowMonitorException("Failed to monitor job")
+            status = response.json().get("status")
+            message = response.json().get("message") or ""
+            if status == "failed":
+                logger.info("Workflow failed as expected, job id: %s, message: %s", job_id, message)
+                if "Traceback" in message:
+                    raise WorkflowMonitorException("Failure message contains a stack trace")
+                if expected_message and expected_message not in message:
+                    raise WorkflowMonitorException(f"Failure message does not contain '{expected_message}'")
+                return message
+            if status == "successful":
+                logger.error("Workflow succeeded but was expected to fail, job id: %s", job_id)
+                raise WorkflowMonitorException("Workflow succeeded but was expected to fail")
+            logger.info("Workflow still running, message: %s", message)
+            time.sleep(5)
+
+        logger.error("Workflow timed out, job id: %s", job_id)
+        raise WorkflowMonitorException("Workflow timed out")
+
     def check_logs_access(self, status_url: str, links: list) -> None:
         """Check the logs are accessible"""
         logger.info("Checking logs are accessible")

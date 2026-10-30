@@ -57,6 +57,8 @@ def cli() -> None:
 @click.option("--debug", is_flag=True, help="Toggle debug mode")
 @click.option("--boot-timeout", default=420, help="Boot timeout in seconds")
 @click.option("--monitor-timeout", default=270, help="Monitor timeout in seconds")
+@click.option("--expect-failure", is_flag=True, help="Pass only if the job fails before the monitor timeout")
+@click.option("--expect-message", default=None, help="Text the failure message must contain, with --expect-failure")
 def workflow(
     workflow_api_url: str,
     resource_catalogue_api_url: str,
@@ -69,8 +71,13 @@ def workflow(
     debug: bool,
     boot_timeout: int,
     monitor_timeout: int,
+    expect_failure: bool,
+    expect_message: str | None,
 ) -> None:
     logger.info("Starting workflow system test")
+
+    if expect_message and not expect_failure:
+        raise click.UsageError("--expect-message requires --expect-failure")
 
     # Set DEBUG logging
     if debug:
@@ -154,24 +161,28 @@ def workflow(
         # Execute workflow
         job_id = ades_client.execute_workflow(cwl_file)
 
-        # Monitor workflow execution for success or failure
-        results_link = ades_client.monitor_workflow(job_id)
+        if expect_failure:
+            # The job must fail with a useful message, there are no outputs to check
+            ades_client.monitor_workflow_failure(job_id, expect_message)
+        else:
+            # Monitor workflow execution for success or failure
+            results_link = ades_client.monitor_workflow(job_id)
 
-        if debug:
-            if os.getenv("AWS_ACCESS_KEY_ID", None) and os.getenv("AWS_SECRET_ACCESS_KEY", None):
-                client = boto3.client(
-                    "s3",
-                    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-                )
-            else:
-                client = boto3.client("s3")
-            eodhp_client.set_client(client)
-            # Check in S3 to confirm all outputs are present (debug only)
-            eodhp_client.check_outputs_in_s3(results_link)
+            if debug:
+                if os.getenv("AWS_ACCESS_KEY_ID", None) and os.getenv("AWS_SECRET_ACCESS_KEY", None):
+                    client = boto3.client(
+                        "s3",
+                        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+                        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+                    )
+                else:
+                    client = boto3.client("s3")
+                eodhp_client.set_client(client)
+                # Check in S3 to confirm all outputs are present (debug only)
+                eodhp_client.check_outputs_in_s3(results_link)
 
-        # Check token allows outputs to be downloaded
-        eodhp_client.check_s3_access_token(cwl_file_id, results_link, debug)
+            # Check token allows outputs to be downloaded
+            eodhp_client.check_s3_access_token(cwl_file_id, results_link, debug)
         ## Final result
         logger.info("Test is successful")
     except Exception:
