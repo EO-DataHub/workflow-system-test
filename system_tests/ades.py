@@ -268,19 +268,29 @@ class ADESClient:
         logger.info("Monitoring workflow, expecting it to fail")
         final_timeout = time.time() + self.monitor_timeout
         while time.time() < final_timeout:
-            response = requests.get(
-                f"{self.user_url}/jobs/{job_id}",
-                headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
-            )
+            try:
+                # A stalled status endpoint must not hold the test past the deadline.
+                response = requests.get(
+                    f"{self.user_url}/jobs/{job_id}",
+                    headers={"Authorization": f"Bearer {self.api_token}", "Accept": "application/json"},
+                    timeout=max(final_timeout - time.time(), 0.001),
+                )
+            except requests.Timeout:
+                break
             if response.status_code != 200:
                 logger.error("Failed to monitor job %s: %s", job_id, response.text)
                 raise WorkflowMonitorException("Failed to monitor job")
             status = response.json().get("status")
-            message = response.json().get("message") or ""
+            message = (response.json().get("message") or "").strip()
             if status == "failed":
+                # A failure reported after the deadline means the job did not fail in time.
+                if time.time() >= final_timeout:
+                    break
                 logger.info("Workflow failed as expected, job id: %s, message: %s", job_id, message)
-                if "Traceback" in message:
-                    raise WorkflowMonitorException("Failure message contains a stack trace")
+                if not message:
+                    raise WorkflowMonitorException("Failure message is empty")
+                if len(message.splitlines()) > 1:
+                    raise WorkflowMonitorException("Failure message is not a single line")
                 if expected_message and expected_message not in message:
                     raise WorkflowMonitorException(f"Failure message does not contain '{expected_message}'")
                 return message

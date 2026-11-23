@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import pytest
+import requests
 
 from system_tests.ades import ADESClient
 from system_tests.cwl_loader import CWLFile
@@ -373,6 +374,17 @@ def job_response(status: str, message: str = "") -> Mock:
     return response
 
 
+class FakeClock:
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def time(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.now += seconds
+
+
 class TestMonitorWorkflowFailure(unittest.TestCase):
     def setUp(self) -> None:
         self.ades_client = ADESClient("https://test-ades-url", "workspace", api_token="valid-api-token")
@@ -409,8 +421,43 @@ class TestMonitorWorkflowFailure(unittest.TestCase):
             "failed", "Exception during execution...\nTraceback (most recent call last):\n fail_on_purpose"
         )
 
-        with pytest.raises(WorkflowMonitorException, match="stack trace"):
+        with pytest.raises(WorkflowMonitorException, match="not a single line"):
             self.ades_client.monitor_workflow_failure("job_id", "fail_on_purpose")
+
+    @patch("system_tests.ades.requests")
+    def test_failure_with_stack_frames_without_header(self, MockRequests: Mock) -> None:
+        MockRequests.get.return_value = job_response(
+            "failed",
+            "Exception during execution...\n"
+            '  File "service.py", line 661, in fail_on_purpose\n'
+            '    raise Exception("Execution failed")\n'
+            "Exception: Execution failed",
+        )
+
+        with pytest.raises(WorkflowMonitorException, match="not a single line"):
+            self.ades_client.monitor_workflow_failure("job_id", "fail_on_purpose")
+
+    @patch("system_tests.ades.requests")
+    def test_one_line_failure_mentioning_traceback(self, MockRequests: Mock) -> None:
+        MockRequests.get.return_value = job_response("failed", "Missing file Traceback.csv\n")
+
+        assert self.ades_client.monitor_workflow_failure("job_id", "Traceback") == "Missing file Traceback.csv"
+
+    @patch("system_tests.ades.requests")
+    def test_empty_failure_message(self, MockRequests: Mock) -> None:
+        MockRequests.get.return_value = job_response("failed", "  \n")
+
+        with pytest.raises(WorkflowMonitorException, match="empty"):
+            self.ades_client.monitor_workflow_failure("job_id")
+
+    @patch("system_tests.ades.requests")
+    def test_missing_failure_message(self, MockRequests: Mock) -> None:
+        response = job_response("failed")
+        response.json.return_value = {"status": "failed", "links": []}
+        MockRequests.get.return_value = response
+
+        with pytest.raises(WorkflowMonitorException, match="empty"):
+            self.ades_client.monitor_workflow_failure("job_id")
 
     @patch("system_tests.ades.requests")
     def test_unexpected_success(self, MockRequests: Mock) -> None:
@@ -427,6 +474,44 @@ class TestMonitorWorkflowFailure(unittest.TestCase):
 
         with pytest.raises(WorkflowMonitorException, match="timed out"):
             self.ades_client.monitor_workflow_failure("job_id")
+
+    @patch("system_tests.ades.time")
+    @patch("system_tests.ades.requests")
+    def test_polls_until_timeout(self, MockRequests: Mock, mock_time: Mock) -> None:
+        clock = FakeClock()
+        mock_time.time.side_effect = clock.time
+        mock_time.sleep.side_effect = clock.sleep
+        self.ades_client.monitor_timeout = 12
+        MockRequests.get.return_value = job_response("running")
+
+        with pytest.raises(WorkflowMonitorException, match="timed out"):
+            self.ades_client.monitor_workflow_failure("job_id")
+
+        assert [c.kwargs["timeout"] for c in MockRequests.get.call_args_list] == [12, 7, 2]
+
+    @patch("system_tests.ades.time")
+    @patch("system_tests.ades.requests")
+    def test_failure_after_deadline_times_out(self, MockRequests: Mock, mock_time: Mock) -> None:
+        clock = FakeClock()
+        mock_time.time.side_effect = clock.time
+
+        def slow_get(*args: object, **kwargs: object) -> Mock:
+            clock.sleep(self.ades_client.monitor_timeout + 1)
+            return job_response("failed", "Execution failed")
+
+        MockRequests.get.side_effect = slow_get
+
+        with pytest.raises(WorkflowMonitorException, match="timed out"):
+            self.ades_client.monitor_workflow_failure("job_id")
+
+    @patch("system_tests.ades.requests.get")
+    def test_stalled_status_request_times_out(self, mock_get: Mock) -> None:
+        mock_get.side_effect = requests.Timeout
+
+        with pytest.raises(WorkflowMonitorException, match="timed out"):
+            self.ades_client.monitor_workflow_failure("job_id")
+
+        assert 0 < mock_get.call_args.kwargs["timeout"] <= self.ades_client.monitor_timeout
 
     @patch("system_tests.ades.requests")
     def test_status_error(self, MockRequests: Mock) -> None:
